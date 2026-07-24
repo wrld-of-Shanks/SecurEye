@@ -17,8 +17,11 @@ dist/
 # Models and Data
 **/models/weights/
 data/*.csv
+data/*.txt
 data/*.pkl
 data/db/
+data/network/
+data/code/
 
 # IDE
 .vscode/
