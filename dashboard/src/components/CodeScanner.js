@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Code, Search, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Code, Search, AlertTriangle } from 'lucide-react';
 import { scanCode } from '../services/api';
+import FindingCard from './FindingCard';
 
 const CodeScanner = () => {
   const [code, setCode] = useState('');
@@ -28,33 +29,18 @@ const CodeScanner = () => {
     }
   };
 
-  const getSeverityColor = (severity) => {
-    switch (severity) {
-      case 'critical':
-        return '#ef4444';
-      case 'high':
-        return '#f97316';
-      case 'medium':
-        return '#eab308';
-      case 'low':
-        return '#3b82f6';
-      default:
-        return '#6b7280';
-    }
-  };
-
   return (
     <div className="code-scanner">
       <h2>
         <Code className="icon" />
         Code Vulnerability Scanner
       </h2>
-      
+
       <div className="scanner-input">
         <textarea
           value={code}
           onChange={(e) => setCode(e.target.value)}
-          placeholder="Paste your JavaScript code here..."
+          placeholder="Paste your code here (JavaScript, Python, Java, etc.)..."
           rows={12}
         />
         <button
@@ -62,14 +48,7 @@ const CodeScanner = () => {
           disabled={loading || !code.trim()}
           className="scan-button"
         >
-          {loading ? (
-            <>Scanning...</>
-          ) : (
-            <>
-              <Search className="icon" />
-              Scan Code
-            </>
-          )}
+          {loading ? 'Scanning...' : <><Search className="icon" /> Scan Code</>}
         </button>
       </div>
 
@@ -82,56 +61,20 @@ const CodeScanner = () => {
 
       {result && (
         <div className="scan-result">
-          <div className="result-header">
-            <h3>Scan Results</h3>
-            <div
-              className="severity-badge"
-              style={{ backgroundColor: getSeverityColor(result.severity) }}
-            >
-              {result.severity}
+          {result.prediction === 'not_vulnerable' ? (
+            <div className="no-events" style={{ color: '#10b981' }}>
+              <p>No vulnerabilities detected in this code.</p>
             </div>
-          </div>
-          
-          <div className="result-body">
-            <div className="result-field">
-              <strong>Prediction:</strong>
-              <span className="prediction-value">{result.prediction}</span>
-            </div>
-            
-            <div className="result-field">
-              <strong>CWE:</strong>
-              <span>{result.explanation?.cwe || 'N/A'}</span>
-            </div>
-            
-            <div className="result-field">
-              <strong>Confidence:</strong>
-              <span className="confidence-value">
-                {(result.confidence * 100).toFixed(1)}%
-              </span>
-            </div>
-            
-            <div className="result-field">
-              <strong>Status:</strong>
-              <span>{result.status}</span>
-            </div>
-          </div>
-
-          {result.explanation && (
-            <div className="explanation-section">
-              <h4>Explanation</h4>
-              <p>{result.explanation.description}</p>
-              
-              {result.explanation.remediation?.length > 0 && (
-                <div className="remediation">
-                  <strong>Remediation:</strong>
-                  <ul>
-                    {result.explanation.remediation.map((item, idx) => (
-                      <li key={idx}>{item}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
+          ) : (
+            <FindingCard event={{
+              event_type: 'code',
+              prediction: result.prediction,
+              confidence: result.confidence,
+              severity: result.severity || result.explanation?.severity || 'info',
+              status: result.status,
+              explanation: result.explanation,
+              suggested_fix: result.suggested_fix
+            }} showType={false} />
           )}
 
           {result.top_predictions && result.top_predictions.length > 0 && (
@@ -148,16 +91,6 @@ const CodeScanner = () => {
                   </li>
                 ))}
               </ul>
-            </div>
-          )}
-
-          {result.suggested_fix && (
-            <div className="fix-section">
-              <h4>Suggested Fix</h4>
-              <pre className="fix-code">{result.suggested_fix}</pre>
-              <p className="fix-disclaimer">
-                This is a suggested fix and should be reviewed before applying.
-              </p>
             </div>
           )}
         </div>

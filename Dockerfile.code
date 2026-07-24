@@ -1,0 +1,12 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+COPY services/code/requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY services/code/ /app/
+
+EXPOSE 5002
+
+CMD ["python3", "app.py"]

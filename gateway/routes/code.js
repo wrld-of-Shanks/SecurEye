@@ -1,20 +1,32 @@
 const express = require('express');
+const WebSocket = require('ws');
 const router = express.Router();
 const Event = require('../../shared/schema/event');
+const { validate, codeScanSchema } = require('../../utils/validation');
+const { scanLimiter } = require('../../middleware/rateLimiter');
+const { createChildLogger } = require('../../utils/logger');
+
+const log = createChildLogger('code-route');
 
 module.exports = function(codeService, triageEngine, wss) {
-  router.post('/scan', async (req, res) => {
+  router.post('/scan', scanLimiter, validate(codeScanSchema), async (req, res) => {
     try {
       const response = await fetch(`${codeService}/scan`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: req.body.code })
+        body: JSON.stringify({ code: req.body.code }),
+        signal: AbortSignal.timeout(60000)
       });
-      
+
       const result = await response.json();
-      
+
+      if (!response.ok) {
+        log.error({ status: response.status, requestId: req.id }, 'Code service error');
+        return res.status(502).json({ error: 'Code service unavailable' });
+      }
+
       const triageResult = triageEngine.classify(result.confidence, result);
-      
+
       const event = new Event({
         event_type: 'code',
         source: req.body.source || 'manual_scan',
@@ -26,11 +38,10 @@ module.exports = function(codeService, triageEngine, wss) {
         suggested_fix: result.suggested_fix || null,
         raw_features: { code: req.body.code }
       });
-      
+
       await event.save();
-      
       broadcastEvent(wss, event);
-      
+
       res.json({
         event_id: event._id,
         prediction: result.prediction,
@@ -42,7 +53,8 @@ module.exports = function(codeService, triageEngine, wss) {
         top_predictions: result.top_predictions
       });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      log.error({ err, requestId: req.id }, 'Code scan failed');
+      res.status(500).json({ error: 'Internal server error' });
     }
   });
 
@@ -50,11 +62,7 @@ module.exports = function(codeService, triageEngine, wss) {
 };
 
 function broadcastEvent(wss, event) {
-  const message = JSON.stringify({
-    type: 'new_event',
-    data: event
-  });
-  
+  const message = JSON.stringify({ type: 'new_event', data: event });
   wss.clients.forEach(client => {
     if (client.readyState === WebSocket.OPEN) {
       client.send(message);

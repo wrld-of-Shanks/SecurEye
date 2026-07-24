@@ -5,11 +5,18 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 require('dotenv').config();
 
+const { logger, createChildLogger } = require('../shared/utils/logger');
+const { requestId } = require('../shared/middleware/requestId');
+const { apiKeyAuth } = require('../shared/middleware/auth');
+const { defaultLimiter } = require('../shared/middleware/rateLimiter');
 const eventRoutes = require('./routes/events');
 const networkRoutes = require('./routes/network');
 const codeRoutes = require('./routes/code');
+const scanRepoRoutes = require('./routes/scanRepo');
+const dastRoutes = require('./routes/dast');
 const { TriageEngine } = require('../shared/triage/engine');
-const Event = require('../shared/schema/event');
+
+const log = createChildLogger('gateway');
 
 const app = express();
 const server = http.createServer(app);
@@ -19,29 +26,87 @@ const PORT = process.env.GATEWAY_PORT || 3000;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/sentinelai';
 const NETWORK_SERVICE = process.env.NETWORK_SERVICE || 'http://localhost:5001';
 const CODE_SERVICE = process.env.CODE_SERVICE || 'http://localhost:5002';
+const DAST_SERVICE = process.env.DAST_SERVICE || 'http://localhost:5003';
+const CORS_ORIGINS = (process.env.CORS_ORIGINS || 'http://localhost:3001').split(',');
 
-app.use(cors());
-app.use(express.json());
+app.use(requestId);
+app.use(cors({
+  origin: CORS_ORIGINS,
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'X-Api-Key', 'X-Request-Id'],
+  credentials: true
+}));
+app.use(express.json({ limit: '1mb' }));
+app.use(defaultLimiter);
 
 const triageEngine = new TriageEngine();
 
 mongoose.connect(MONGO_URI)
-  .then(() => console.log('Connected to MongoDB'))
-  .catch(err => console.error('MongoDB connection error:', err));
+  .then(() => log.info('Connected to MongoDB'))
+  .catch(err => log.error({ err }, 'MongoDB connection error'));
 
-app.use('/api/events', eventRoutes);
-app.use('/api/network', networkRoutes(NETWORK_SERVICE, triageEngine, wss));
-app.use('/api/code', codeRoutes(CODE_SERVICE, triageEngine, wss));
+app.use('/api/events', apiKeyAuth, eventRoutes);
+app.use('/api/network', apiKeyAuth, networkRoutes(NETWORK_SERVICE, triageEngine, wss));
+app.use('/api/code', apiKeyAuth, codeRoutes(CODE_SERVICE, triageEngine, wss));
+app.use('/api/code', apiKeyAuth, scanRepoRoutes(CODE_SERVICE, triageEngine, wss));
+app.use('/api/dast', apiKeyAuth, dastRoutes(DAST_SERVICE, triageEngine, wss));
 
-wss.on('connection', (ws) => {
-  console.log('Client connected to WebSocket');
-  ws.on('close', () => console.log('Client disconnected'));
+wss.on('connection', (ws, req) => {
+  log.info({ requestId: req.id }, 'Client connected to WebSocket');
+  ws.on('close', () => log.info('Client disconnected'));
+});
+
+app.get('/health', async (req, res) => {
+  const checks = {
+    gateway: 'ok',
+    mongo: 'unknown',
+    network_service: 'unknown',
+    code_service: 'unknown',
+    dast_service: 'unknown'
+  };
+
+  try {
+    await mongoose.connection.db.admin().ping();
+    checks.mongo = 'ok';
+  } catch {
+    checks.mongo = 'error';
+  }
+
+  const serviceChecks = [
+    { name: 'network_service', url: `${NETWORK_SERVICE}/health` },
+    { name: 'code_service', url: `${CODE_SERVICE}/health` },
+    { name: 'dast_service', url: `${DAST_SERVICE}/health` }
+  ];
+
+  await Promise.allSettled(
+    serviceChecks.map(async ({ name, url }) => {
+      try {
+        const resp = await fetch(url, { signal: AbortSignal.timeout(3000) });
+        if (resp.ok) checks[name] = 'ok';
+        else checks[name] = 'degraded';
+      } catch {
+        checks[name] = 'unreachable';
+      }
+    })
+  );
+
+  const allOk = Object.values(checks).every(v => v === 'ok');
+  res.status(allOk ? 200 : 503).json({
+    status: allOk ? 'healthy' : 'degraded',
+    checks,
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.use((err, req, res, _next) => {
+  log.error({ err, requestId: req.id, method: req.method, url: req.url }, 'Unhandled error');
+  res.status(500).json({ error: 'Internal server error' });
 });
 
 app.set('wss', wss);
 
 server.listen(PORT, () => {
-  console.log(`Gateway running on port ${PORT}`);
+  log.info({ port: PORT }, 'Gateway running');
 });
 
 module.exports = { app, server, wss };
