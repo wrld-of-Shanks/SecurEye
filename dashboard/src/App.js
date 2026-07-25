@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ThreatFeedSidebar from './components/ThreatFeedSidebar';
 import UnifiedScanner from './components/UnifiedScanner';
 import StatsBar from './components/StatsBar';
@@ -9,6 +9,8 @@ function App() {
   const [events, setEvents] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [feedPaused, setFeedPaused] = useState(false);
+  const pausedRef = useRef(false);
 
   const ws = useWebSocket(process.env.REACT_APP_WS_URL || 'ws://localhost:3000/ws');
 
@@ -17,10 +19,15 @@ function App() {
   }, []);
 
   useEffect(() => {
+    pausedRef.current = feedPaused;
+  }, [feedPaused]);
+
+  useEffect(() => {
     if (ws) {
       ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
         if (data.type === 'new_event') {
+          if (pausedRef.current) return;
           setEvents(prev => {
             const incoming = data.data;
             const id = incoming?._id;
@@ -52,6 +59,11 @@ function App() {
   const clearEvents = () => {
     localStorage.setItem('sentinel_feed_cleared_at', new Date().toISOString());
     setEvents([]);
+    setFeedPaused(true);
+  };
+
+  const resumeFeed = () => {
+    setFeedPaused(false);
   };
 
   return (
@@ -64,7 +76,7 @@ function App() {
           </h1>
           <p className="sidebar-subtitle">Security Monitor</p>
         </div>
-        <ThreatFeedSidebar events={events} onClear={clearEvents} />
+        <ThreatFeedSidebar events={events} onClear={clearEvents} paused={feedPaused} />
       </aside>
 
       <main className="main-content">
@@ -73,6 +85,9 @@ function App() {
             <h2 className="topbar-title">Security Scanner</h2>
           </div>
           <div className="topbar-right">
+            {feedPaused && (
+              <span className="feed-paused-badge">Feed paused</span>
+            )}
             <span className={`ws-status ${ws ? 'connected' : ''}`}>
               <span className="ws-dot" />
               {ws ? 'Live' : 'Offline'}
@@ -88,7 +103,7 @@ function App() {
         ) : (
           <div className="main-scroll">
             <StatsBar events={events} />
-            <UnifiedScanner />
+            <UnifiedScanner onResumeFeed={resumeFeed} />
           </div>
         )}
       </main>

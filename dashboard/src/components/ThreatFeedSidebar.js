@@ -1,6 +1,5 @@
 import React from 'react';
-import { Shield, Trash2, AlertTriangle, Info } from 'lucide-react';
-import FindingCard from './FindingCard';
+import { Shield, Trash2, AlertTriangle, Info, Pause } from 'lucide-react';
 
 const getSeverityIcon = (severity) => {
   switch (severity) {
@@ -14,7 +13,7 @@ const getSeverityIcon = (severity) => {
   }
 };
 
-const ThreatFeedSidebar = ({ events, onClear }) => {
+const ThreatFeedSidebar = ({ events, onClear, paused }) => {
   return (
     <div className="sidebar-feed">
       <div className="sidebar-feed-header">
@@ -35,28 +34,36 @@ const ThreatFeedSidebar = ({ events, onClear }) => {
       )}
 
       <div className="sidebar-feed-list">
-        {events.length === 0 ? (
+        {events.length === 0 && !paused && (
           <div className="sidebar-feed-empty">
             <Shield className="icon" />
             <p>No threats yet</p>
           </div>
-        ) : (
-          events.map((event, index) => (
-            <div key={`${event._id || ''}-${index}`} className="sidebar-feed-item">
-              <div className="feed-item-header">
-                {getSeverityIcon(event.severity)}
-                <span className="feed-item-type">{(event.event_type || '').replace('_', ' ')}</span>
-                <span className={`feed-item-severity ${event.severity}`}>{event.severity}</span>
-              </div>
-              <div className="feed-item-prediction">
-                {(event.prediction || '').replace(/_/g, ' ')}
-              </div>
-              {event.explanation?.what && (
-                <div className="feed-item-what">{event.explanation.what}</div>
-              )}
-            </div>
-          ))
         )}
+
+        {events.length === 0 && paused && (
+          <div className="sidebar-feed-paused">
+            <Pause className="icon" />
+            <p>Feed paused</p>
+            <span>Run a scan to resume</span>
+          </div>
+        )}
+
+        {events.length > 0 && events.map((event, index) => (
+          <div key={`${event._id || ''}-${index}`} className="sidebar-feed-item">
+            <div className="feed-item-header">
+              {getSeverityIcon(event.severity)}
+              <span className="feed-item-type">{(event.event_type || '').replace('_', ' ')}</span>
+              <span className={`feed-item-severity ${event.severity}`}>{event.severity}</span>
+            </div>
+            <div className="feed-item-prediction">
+              {(event.prediction || '').replace(/_/g, ' ')}
+            </div>
+            {event.explanation?.what && (
+              <div className="feed-item-what">{event.explanation.what}</div>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );

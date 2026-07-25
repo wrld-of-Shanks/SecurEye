@@ -23,7 +23,7 @@ const TYPE_CONFIG = {
   dast: { icon: Globe, label: 'Website', color: '#ef4444', hint: 'Live website URL to scan' },
 };
 
-const UnifiedScanner = ({ onNewEvent }) => {
+const UnifiedScanner = ({ onResumeFeed }) => {
   const [input, setInput] = useState('');
   const [detectedType, setDetectedType] = useState(null);
   const [dastMode, setDastMode] = useState('passive');
@@ -52,6 +52,7 @@ const UnifiedScanner = ({ onNewEvent }) => {
     setError(null);
     setResult(null);
     setRepoResult(null);
+    onResumeFeed?.();
 
     try {
       if (type === 'code') {
