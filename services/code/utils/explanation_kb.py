@@ -8,6 +8,7 @@ IMPACT_DESCRIPTIONS = {
     'hardcoded_credentials': 'anyone with access to the source code or decompiled binary can obtain the credentials and use them to access the protected system',
     'command_injection': 'an attacker could execute arbitrary operating system commands on the server, potentially gaining full control of the host',
     'path_traversal': 'an attacker could access files outside the intended directory, potentially reading sensitive configuration files or overwriting critical system files',
+    'insecure_deserialization': 'an attacker could craft a malicious serialized object that executes arbitrary code when deserialized, potentially achieving remote code execution',
     'not_vulnerable': None
 }
 
@@ -17,6 +18,7 @@ REMEDIATION_GUIDANCE = {
     'hardcoded_credentials': 'Move credentials to environment variables (`process.env.SECRET_KEY`) or a secrets manager. Never commit secrets to version control. Implement credential rotation. Use `.env` files excluded by `.gitignore` for local development.',
     'command_injection': 'Use language-level APIs instead of shelling out to the OS. If system commands are necessary, use argument lists rather than string interpolation (e.g., `subprocess.run(["ls", user_dir])` not `os.system(f"ls {user_dir}")`). Validate and allowlist input.',
     'path_traversal': 'Resolve the file path and verify the result is within the intended directory before accessing it. Use `os.path.realpath()` or `path.resolve()` and check the prefix. Validate against an allowlist of permitted directories.',
+    'insecure_deserialization': 'Never deserialize untrusted data with pickle, marshal, or similar modules. Use safe formats like JSON. If pickle is absolutely required, restrict the classes that can be deserialized using a custom Unpickler with an allowlist. For YAML, always use `yaml.safe_load()` instead of `yaml.load()`.',
     'not_vulnerable': None
 }
 
@@ -49,6 +51,7 @@ def _get_owasp_category(cwe_id):
         'CWE-295': 'A02:2021 - Cryptographic Failures',
         'CWE-639': 'A01:2021 - Broken Access Control',
         'CWE-287': 'A07:2021 - Identification and Authentication Failures',
+        'CWE-502': 'A08:2021 - Software and Data Integrity Failures',
     }
     return owasp_map.get(cwe_id, 'N/A')
 
@@ -189,6 +192,28 @@ class ExplanationKB:
                     'Resolve and validate path is within allowed directory',
                     'Use path.normalize and check prefix',
                     'Implement allowlist for accessible paths'
+                ]
+            },
+            'insecure_deserialization': {
+                'cwe': 'CWE-502',
+                'name': 'Insecure Deserialization',
+                'description': 'Deserializing untrusted data can allow an attacker to execute arbitrary code.',
+                'severity': 'critical',
+                'owasp': 'A08:2021 - Software and Data Integrity Failures',
+                'remediation': [
+                    'Never deserialize untrusted data with pickle',
+                    'Use safe formats like JSON',
+                    'If pickle is required, restrict deserializable classes',
+                    'Use yaml.safe_load() instead of yaml.load()'
+                ],
+                'examples': [
+                    'pickle.loads(user_data)',
+                    'yaml.load(raw_config)'
+                ],
+                'fix_patterns': [
+                    'Use JSON for serialization',
+                    'Use yaml.safe_load()',
+                    'Implement restricted unpickler'
                 ]
             },
             'not_vulnerable': {

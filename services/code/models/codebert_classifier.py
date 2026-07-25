@@ -5,6 +5,7 @@ from transformers import RobertaTokenizer, RobertaForSequenceClassification
 from torch.utils.data import Dataset, DataLoader
 import pandas as pd
 import numpy as np
+from models.rule_classifier import RuleBasedClassifier, VULNERABILITY_CLASSES as RULE_CLASSES, CWE_MAPPING as RULE_CWE
 
 VULNERABILITY_CLASSES = [
     'not_vulnerable',
@@ -12,7 +13,8 @@ VULNERABILITY_CLASSES = [
     'xss',
     'hardcoded_credentials',
     'command_injection',
-    'path_traversal'
+    'path_traversal',
+    'insecure_deserialization'
 ]
 
 CWE_MAPPING = {
@@ -21,7 +23,8 @@ CWE_MAPPING = {
     'xss': 'CWE-79',
     'hardcoded_credentials': 'CWE-798',
     'command_injection': 'CWE-78',
-    'path_traversal': 'CWE-22'
+    'path_traversal': 'CWE-22',
+    'insecure_deserialization': 'CWE-502'
 }
 
 class CodeDataset(Dataset):
@@ -121,7 +124,11 @@ class CodeBERTClassifier:
     
     def classify(self, code):
         if not self.is_trained:
-            self.load_pretrained()
+            try:
+                self.load_pretrained()
+            except Exception:
+                fallback = RuleBasedClassifier()
+                return fallback.classify(code)
         
         encoding = self.tokenizer(
             code,

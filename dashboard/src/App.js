@@ -1,14 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import ThreatFeed from './components/ThreatFeed';
-import CodeScanner from './components/CodeScanner';
-import RepoScans from './components/RepoScans';
-import DastScanner from './components/DastScanner';
-import StatsPanel from './components/StatsPanel';
+import ThreatFeedSidebar from './components/ThreatFeedSidebar';
+import UnifiedScanner from './components/UnifiedScanner';
+import StatsBar from './components/StatsBar';
 import { useWebSocket } from './services/websocket';
 import { fetchEvents, fetchStats } from './services/api';
 
 function App() {
-  const [activeTab, setActiveTab] = useState('feed');
   const [events, setEvents] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -53,54 +50,42 @@ function App() {
   };
 
   return (
-    <div className="app">
-      <header className="header">
-        <div className="header-content">
-          <h1>
-            <span className="logo">🛡️</span>
+    <div className="app-layout">
+      <aside className="sidebar">
+        <div className="sidebar-header">
+          <h1 className="sidebar-brand">
+            <span className="brand-icon">🛡️</span>
             SentinelAI
           </h1>
-          <p className="subtitle">Security Monitoring Platform</p>
+          <p className="sidebar-subtitle">Security Monitor</p>
         </div>
-      </header>
+        <ThreatFeedSidebar events={events} onClear={clearEvents} />
+      </aside>
 
-      <main className="main">
-        <nav className="tabs">
-          <button className={`tab ${activeTab === 'feed' ? 'active' : ''}`}
-            onClick={() => setActiveTab('feed')}>
-            Threat Feed
-          </button>
-          <button className={`tab ${activeTab === 'scanner' ? 'active' : ''}`}
-            onClick={() => setActiveTab('scanner')}>
-            Code Scanner
-          </button>
-          <button className={`tab ${activeTab === 'repo-scans' ? 'active' : ''}`}
-            onClick={() => setActiveTab('repo-scans')}>
-            Repo Scans
-          </button>
-          <button className={`tab ${activeTab === 'dast' ? 'active' : ''}`}
-            onClick={() => setActiveTab('dast')}>
-            DAST Scanner
-          </button>
-          <button className={`tab ${activeTab === 'stats' ? 'active' : ''}`}
-            onClick={() => setActiveTab('stats')}>
-            Statistics
-          </button>
-        </nav>
+      <main className="main-content">
+        <header className="topbar">
+          <div className="topbar-left">
+            <h2 className="topbar-title">Security Scanner</h2>
+          </div>
+          <div className="topbar-right">
+            <span className={`ws-status ${ws ? 'connected' : ''}`}>
+              <span className="ws-dot" />
+              {ws ? 'Live' : 'Offline'}
+            </span>
+          </div>
+        </header>
 
-        <div className="content">
-          {loading ? (
-            <div className="loading">Loading...</div>
-          ) : (
-            <>
-              {activeTab === 'feed' && <ThreatFeed events={events} onClear={clearEvents} />}
-              {activeTab === 'scanner' && <CodeScanner />}
-              {activeTab === 'repo-scans' && <RepoScans />}
-              {activeTab === 'dast' && <DastScanner />}
-              {activeTab === 'stats' && <StatsPanel stats={stats} events={events} />}
-            </>
-          )}
-        </div>
+        {loading ? (
+          <div className="loading-full">
+            <div className="loading-spinner" />
+            <span>Loading...</span>
+          </div>
+        ) : (
+          <div className="main-scroll">
+            <StatsBar events={events} />
+            <UnifiedScanner />
+          </div>
+        )}
       </main>
     </div>
   );
