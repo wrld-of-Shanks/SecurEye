@@ -69,8 +69,8 @@ module.exports = function(dastService, triageEngine, wss) {
 
         const event = new Event({
           event_type: 'dast',
-          source: target_url,
-          prediction: finding.check_name,
+          source: finding.location || target_url,
+          prediction: finding.check_name || finding.check_type,
           confidence: certaintyType === 'confirmed' ? null : finding.confidence,
           certainty_type: certaintyType,
           severity: triageResult.severity,

@@ -7,6 +7,7 @@ from urllib.parse import urlparse, urljoin
 import requests
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from active_scanner import run_active_scan, NotAuthorizedError
 
 app = Flask(__name__)
 CORS(app)
@@ -127,6 +128,51 @@ CWE_KB = {
         'why_template': 'An attacker can access administrative functions, modify system settings, view all user data, or perform privileged operations without any credentials.',
         'remediation': 'Enforce authentication on all privileged routes using middleware. Implement role-based access control (RBAC). Verify authorization at every endpoint, not just the UI layer. Use session tokens or JWTs with proper validation.',
         'active': True
+    },
+    'sqli_error_disclosure': {
+        'cwe': 'CWE-89', 'owasp': 'A03:2021 - Injection',
+        'name': 'SQL Injection (Error Disclosure)', 'severity': 'critical',
+        'what_template': '{extra_detail}',
+        'why_template': 'Database error text in responses indicates the input is being processed by the database without proper sanitization, confirming an SQL injection vector.',
+        'remediation': 'Use parameterized queries or prepared statements. Disable detailed database error messages in production. Use an ORM that handles parameterization automatically.',
+        'active': True,
+        'passive_fact': '{extra_detail}'
+    },
+    'sqli_behavior_change': {
+        'cwe': 'CWE-89', 'owasp': 'A03:2021 - Injection',
+        'name': 'SQL Injection (Behavior Change)', 'severity': 'high',
+        'what_template': '{extra_detail}',
+        'why_template': 'A measurable change in response behavior when SQL-syntax payloads are injected suggests the input affects query logic, a strong indicator of SQL injection.',
+        'remediation': 'Use parameterized queries or prepared statements. Validate and sanitize all user input. Apply principle of least privilege to database accounts.',
+        'active': True,
+        'passive_fact': '{extra_detail}'
+    },
+    'reflected_xss': {
+        'cwe': 'CWE-79', 'owasp': 'A03:2021 - Injection',
+        'name': 'Reflected XSS Indicator', 'severity': 'high',
+        'what_template': '{extra_detail}',
+        'why_template': 'A benign probe marker injected into the application was reflected unescaped in the HTML response, indicating a reflected XSS vulnerability.',
+        'remediation': 'Encode all output data context-appropriately (HTML entity, JavaScript, URL encoding). Use frameworks that auto-escape by default. Implement Content Security Policy.',
+        'active': True,
+        'passive_fact': '{extra_detail}'
+    },
+    'idor': {
+        'cwe': 'CWE-639', 'owasp': 'A01:2021 - Broken Access Control',
+        'name': 'IDOR Indicator', 'severity': 'high',
+        'what_template': '{extra_detail}',
+        'why_template': 'Cross-account resource access indicates missing object-level authorization checks.',
+        'remediation': 'Implement proper authorization checks for every object access. Verify that the authenticated user owns or has permission to access the requested resource.',
+        'active': True,
+        'passive_fact': '{extra_detail}'
+    },
+    'exposed_path': {
+        'cwe': 'CWE-538', 'owasp': 'A01:2021 - Broken Access Control',
+        'name': 'Exposed Path Discovered', 'severity': 'info',
+        'what_template': '{extra_detail}',
+        'why_template': 'Discoverable paths can reveal application structure and sensitive endpoints to attackers.',
+        'remediation': 'Restrict access to administrative and internal paths. Use authentication and network-level controls to limit access.',
+        'active': True,
+        'passive_fact': '{extra_detail}'
     }
 }
 
@@ -659,10 +705,24 @@ def scan():
     findings = run_passive_checks(target_url, session)
 
     if mode == 'active':
-        findings.extend(run_active_checks(target_url, session))
+        common_params = ['id', 'q', 'search', 'query', 'page', 'sort', 'filter', 'type', 'user']
+        params_to_test = []
+        parsed_base = urlparse(target_url)
+        base_url = f"{parsed_base.scheme}://{parsed_base.netloc}"
+        for param in common_params:
+            params_to_test.append({"endpoint": base_url, "param": param})
+
+        try:
+            active_result = run_active_scan(target_url, params_to_test)
+            if not active_result.get('skipped_active'):
+                for af in active_result.get('findings', []):
+                    findings.append(af)
+        except NotAuthorizedError:
+            pass
 
     for f in findings:
-        kb = CWE_KB.get(f.get('check_name', ''))
+        check_id = f.get('check_name') or f.get('check_type', '')
+        kb = CWE_KB.get(check_id)
         if kb:
             f['severity'] = kb.get('severity', 'medium')
         if not verbose_evidence:
