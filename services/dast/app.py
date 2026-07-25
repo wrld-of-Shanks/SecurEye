@@ -83,10 +83,10 @@ CWE_KB = {
     'open_redirect': {
         'cwe': 'CWE-601', 'owasp': 'A01:2021 - Broken Access Control',
         'name': 'Open Redirect Detected', 'severity': 'medium',
-        'what_template': 'The endpoint {endpoint} accepts a redirect parameter that forwards users to an arbitrary external URL without validation.',
+        'what_template': 'The endpoint {endpoint} accepts redirect parameter "{param}" that forwards users to an arbitrary external URL without validation.',
         'why_template': 'Open redirects are commonly used in phishing attacks: the attacker crafts a link that appears to go to the legitimate site but redirects to a malicious page, stealing credentials or delivering malware.',
         'remediation': 'Validate redirect targets against a strict allowlist of permitted domains. Never redirect to user-supplied URLs. Use relative paths for internal redirects. If external redirects are needed, show an interstitial page warning the user.',
-        'passive_fact': 'Parameter "{extra_detail}" redirected to external domain without validation'
+        'passive_fact': 'Parameter "{param}" redirected to external domain without validation'
     },
     'weak_tls': {
         'cwe': 'CWE-326', 'owasp': 'A02:2021 - Cryptographic Failures',
@@ -155,6 +155,7 @@ def _build_explanation(check_name, target_url, detection_source,
 
     what = kb['what_template'].format(
         endpoint=endpoint,
+        param=param or '',
         banner=extra_detail or '',
         file_detail=extra_detail or '',
         tls_detail=extra_detail or '',
@@ -182,7 +183,7 @@ def _build_explanation(check_name, target_url, detection_source,
         certainty_type = 'confirmed'
         fact_template = kb.get('passive_fact', '')
         observed_fact = fact_template.format(
-            endpoint=endpoint, extra_detail=extra_detail or '',
+            endpoint=endpoint, param=param or '', extra_detail=extra_detail or '',
             banner=extra_detail or '', file_detail=extra_detail or '',
             tls_detail=extra_detail or '', missing_flags=extra_detail or ''
         )
