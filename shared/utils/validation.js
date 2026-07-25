@@ -38,7 +38,19 @@ const scanRepoSchema = Joi.object({
 });
 
 const dastScanSchema = Joi.object({
-  target_url: Joi.string().uri().max(MAX_TARGET_URL_LENGTH).required(),
+  target_url: Joi.string().max(MAX_TARGET_URL_LENGTH).required()
+    .custom((value, helpers) => {
+      let url = value.trim();
+      if (!/^https?:\/\//i.test(url)) {
+        url = 'https://' + url;
+      }
+      try {
+        new URL(url);
+      } catch {
+        return helpers.error('any.invalid');
+      }
+      return url;
+    }),
   mode: Joi.string().valid('passive', 'active').default('passive'),
   verbose_evidence: Joi.boolean().default(false)
 });

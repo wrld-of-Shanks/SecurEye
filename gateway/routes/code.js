@@ -2,9 +2,9 @@ const express = require('express');
 const WebSocket = require('ws');
 const router = express.Router();
 const Event = require('../../shared/schema/event');
-const { validate, codeScanSchema } = require('../../utils/validation');
-const { scanLimiter } = require('../../middleware/rateLimiter');
-const { createChildLogger } = require('../../utils/logger');
+const { validate, codeScanSchema } = require('../../shared/utils/validation');
+const { scanLimiter } = require('../../shared/middleware/rateLimiter');
+const { createChildLogger } = require('../../shared/utils/logger');
 
 const log = createChildLogger('code-route');
 

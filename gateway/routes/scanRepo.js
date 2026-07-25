@@ -8,9 +8,9 @@ const { promisify } = require('util');
 const router = express.Router();
 const Event = require('../../shared/schema/event');
 const ScanJob = require('../../shared/schema/scanJob');
-const { validate, scanRepoSchema } = require('../../utils/validation');
-const { scanLimiter } = require('../../middleware/rateLimiter');
-const { createChildLogger } = require('../../utils/logger');
+const { validate, scanRepoSchema } = require('../../shared/utils/validation');
+const { scanLimiter } = require('../../shared/middleware/rateLimiter');
+const { createChildLogger } = require('../../shared/utils/logger');
 
 const log = createChildLogger('scan-repo-route');
 const execFileAsync = promisify(execFile);
