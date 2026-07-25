@@ -124,11 +124,8 @@ class CodeBERTClassifier:
     
     def classify(self, code):
         if not self.is_trained:
-            try:
-                self.load_pretrained()
-            except Exception:
-                fallback = RuleBasedClassifier()
-                return fallback.classify(code)
+            fallback = RuleBasedClassifier()
+            return fallback.classify(code)
         
         encoding = self.tokenizer(
             code,

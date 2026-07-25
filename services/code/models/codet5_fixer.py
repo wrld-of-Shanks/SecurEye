@@ -106,7 +106,12 @@ class CodeT5Fixer:
     
     def generate_fix(self, vulnerable_code, vulnerability_type=None):
         if not self.is_trained:
-            self.load_pretrained()
+            return {
+                'fix': None,
+                'confidence': 0.0,
+                'original': vulnerable_code,
+                'message': 'Fix model not trained yet. Train with /train endpoint first.'
+            }
         
         prompt = f"fix: {vulnerable_code}"
         

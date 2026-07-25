@@ -21,7 +21,12 @@ function App() {
       ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
         if (data.type === 'new_event') {
-          setEvents(prev => [data.data, ...prev].slice(0, 200));
+          setEvents(prev => {
+            const incoming = data.data;
+            const id = incoming?._id;
+            if (id && prev.some(e => e._id === id)) return prev;
+            return [incoming, ...prev].slice(0, 200);
+          });
         }
       };
     }

@@ -42,7 +42,7 @@ const ThreatFeedSidebar = ({ events, onClear }) => {
           </div>
         ) : (
           events.map((event, index) => (
-            <div key={event._id || index} className="sidebar-feed-item">
+            <div key={`${event._id || ''}-${index}`} className="sidebar-feed-item">
               <div className="feed-item-header">
                 {getSeverityIcon(event.severity)}
                 <span className="feed-item-type">{(event.event_type || '').replace('_', ' ')}</span>
