@@ -8,10 +8,11 @@ const log = createChildLogger('events-route');
 
 router.get('/', validate(paginationSchema, 'query'), async (req, res) => {
   try {
-    const { event_type, status, limit = 50, page = 1 } = req.query;
+    const { event_type, status, limit = 50, page = 1, since } = req.query;
     const query = {};
     if (event_type) query.event_type = event_type;
     if (status) query.status = status;
+    if (since) query.timestamp = { $gt: new Date(since) };
 
     const skip = (page - 1) * limit;
     const [events, total] = await Promise.all([

@@ -32,8 +32,10 @@ function App() {
 
   const loadInitialData = async () => {
     try {
+      const clearedAt = localStorage.getItem('sentinel_feed_cleared_at');
+      const params = clearedAt ? { since: clearedAt } : {};
       const [eventsData, statsData] = await Promise.all([
-        fetchEvents(),
+        fetchEvents(params),
         fetchStats()
       ]);
       setEvents(eventsData);
@@ -45,7 +47,10 @@ function App() {
     }
   };
 
-  const clearEvents = () => setEvents([]);
+  const clearEvents = () => {
+    localStorage.setItem('sentinel_feed_cleared_at', new Date().toISOString());
+    setEvents([]);
+  };
 
   return (
     <div className="app">
