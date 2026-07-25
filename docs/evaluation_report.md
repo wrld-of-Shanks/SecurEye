@@ -308,8 +308,8 @@ Real Code:      Test set created from GitHub advisories. Script at:
 --- 5.2 Reproduction Commands ---
 
 # 1. Install dependencies
-cd services/code && pip install -r requirements.txt
-cd services/network && pip install -r requirements.txt
+cd backend/services/code && pip install -r requirements.txt
+cd backend/services/network && pip install -r requirements.txt
 cd gateway && npm install
 
 # 2. Train models (if weights not present)

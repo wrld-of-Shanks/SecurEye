@@ -76,7 +76,7 @@ def train_isolation_forest():
     for k, v in score_percentiles.items():
         print(f"  {k}: {v:.4f}")
     
-    save_path = '/Users/shanks/Desktop/Specula/services/network/models/weights/isolation_forest.pkl'
+    save_path = '/Users/shanks/Desktop/Specula/backend/services/network/models/weights/isolation_forest.pkl'
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
     joblib.dump({
         'model': model,

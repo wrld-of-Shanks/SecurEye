@@ -49,10 +49,10 @@ A locally-trained security platform combining **network intrusion detection** an
 mongod --dbpath ./data/db
 
 # 2. Install dependencies
-cd gateway && npm install
+cd backend/gateway && npm install
 cd ../services/network && pip install -r requirements.txt
 cd ../services/code && pip install -r requirements.txt
-cd ../../dashboard && npm install
+cd ../../frontend/dashboard && npm install
 
 # 3. Start all services
 ./scripts/start-all.sh
@@ -100,14 +100,16 @@ cd ../../dashboard && npm install
 
 ```
 Specula/
-├── gateway/                  # Node.js/Express API gateway
-├── services/
-│   ├── network/              # Flask - Network anomaly detection
-│   └── code/                 # Flask - Code vulnerability detection
-├── shared/
-│   ├── schema/               # MongoDB schemas
-│   └── triage/               # Confidence-based triage engine
-├── dashboard/                # React frontend
+├── backend/
+│   ├── gateway/              # Node.js/Express API gateway
+│   ├── services/
+│   │   ├── network/          # Flask - Network anomaly detection
+│   │   └── code/             # Flask - Code vulnerability detection
+│   └── shared/
+│       ├── schema/           # MongoDB schemas
+│       └── triage/           # Confidence-based triage engine
+├── frontend/
+│   └── dashboard/            # React frontend
 ├── scripts/                  # Startup/utility scripts
 ├── docs/                     # Evaluation documentation
 └── data/                     # Datasets and model weights

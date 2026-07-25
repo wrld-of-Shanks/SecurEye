@@ -60,7 +60,7 @@ Specula is a local-first security platform combining three detection engines (SA
 
 ### 3.1 Rule-Based Classifier
 
-**File:** `services/code/models/rule_classifier.py`
+**File:** `backend/services/code/models/rule_classifier.py`
 
 The primary detection engine. Uses AST analysis and pattern matching across 7 vulnerability classes:
 
@@ -80,7 +80,7 @@ The primary detection engine. Uses AST analysis and pattern matching across 7 vu
 
 ### 3.2 CodeBERT Classifier (ML)
 
-**File:** `services/code/models/codebert_classifier.py`
+**File:** `backend/services/code/models/codebert_classifier.py`
 
 Fine-tuned `microsoft/codebert-base` (125M params) for vulnerability classification.
 
@@ -102,7 +102,7 @@ Fine-tuned `microsoft/codebert-base` (125M params) for vulnerability classificat
 
 ### 3.3 Repository Scanner
 
-**File:** `services/code/repo_scanner.py`
+**File:** `backend/services/code/repo_scanner.py`
 
 Background thread-based scanner for Git repositories:
 - 60-second clone timeout
@@ -114,7 +114,7 @@ Background thread-based scanner for Git repositories:
 
 ## 4. Dynamic Application Security Testing (DAST)
 
-**File:** `services/dast/app.py` (785 lines)
+**File:** `backend/services/dast/app.py` (785 lines)
 
 ### 4.1 Passive Checks (8)
 
@@ -149,7 +149,7 @@ Non-destructive probes against the target:
 
 ### 4.3 Authorization Gate
 
-- Gateway auto-authorizes external targets on first scan (`gateway/routes/dast.js`)
+- Gateway auto-authorizes external targets on first scan (`backend/gateway/routes/dast.js`)
 - `active_scanner.py` always allows localhost (`127.0.0.1`, `::1`, `localhost`)
 - Default: no raw payloads stored (`verbose_evidence: false`)
 
@@ -157,11 +157,11 @@ Non-destructive probes against the target:
 
 ## 5. Network Intrusion Detection System (NIDS)
 
-**File:** `services/network/app.py`
+**File:** `backend/services/network/app.py`
 
 ### 5.1 XGBoost Classifier
 
-**File:** `services/network/models/xgboost_model.py`
+**File:** `backend/services/network/models/xgboost_model.py`
 
 Trained on NSL-KDD dataset (125,973 samples, 23 attack classes).
 
@@ -188,7 +188,7 @@ min_child_weight=3, subsample=0.8, colsample_bytree=0.8, gamma=0.1
 
 ### 5.2 Isolation Forest (Anomaly Detection)
 
-**File:** `services/network/models/isolation_forest.py`
+**File:** `backend/services/network/models/isolation_forest.py`
 
 **Bug fixed:** Sigmoid normalization `_normalize_score = 1 / (1 + np.exp(-score))` mapped all scores to [0.579, 0.667], making threshold discrimination impossible.
 
@@ -217,7 +217,7 @@ if unsupervised_result['is_anomaly'] and unsupervised_result['anomaly_score'] > 
 
 ## 6. Dashboard
 
-**File:** `dashboard/src/components/UnifiedScanner.js`
+**File:** `frontend/dashboard/src/components/UnifiedScanner.js`
 
 - **Auto-detect mode:** Paste code, URL, or repo — system detects type automatically
 - **Streaming results:** WebSocket feeds findings in real time
@@ -392,45 +392,50 @@ Includes references to Semgrep, SonarQube, OWASP ZAP, Snort, Suricata, CodeBERT,
 
 ```
 Specula/
-├── services/
-│   ├── code/                    # SAST engine (5002)
-│   │   ├── app.py               # Flask API (140 lines)
-│   │   ├── repo_scanner.py      # Background repo scanning
-│   │   ├── models/
-│   │   │   ├── rule_classifier.py       # Primary detector (87% acc)
-│   │   │   ├── codebert_classifier.py   # ML classifier
-│   │   │   └── weights/
-│   │   │       ├── codebert_classifier/  # Active CodeBERT weights
-│   │   │       └── codebert_classifier_old/  # Previous broken weights
-│   │   └── explanations/
-│   │       └── explanation_kb.py  # Structured finding explanations
-│   ├── network/                 # NIDS engine (5001)
-│   │   ├── app.py               # Flask API (89 lines)
-│   │   ├── models/
-│   │   │   ├── xgboost_model.py         # Supervised classifier
-│   │   │   ├── isolation_forest.py      # Anomaly detector
-│   │   │   ├── ensemble.py              # Combined prediction
-│   │   │   └── weights/
-│   │   │       ├── xgboost_model.pkl
-│   │   │       └── isolation_forest.pkl
-│   │   └── utils/
-│   │       └── feature_engineering.py
-│   ├── dast/                    # DAST engine (5003)
-│   │   ├── app.py               # Flask API (785 lines)
-│   │   ├── active_scanner.py    # SQLi, XSS, IDOR probes
-│   │   └── passive_checks.py    # Header/config analysis
-│   └── dashboard/               # React UI (3001)
+├── backend/
+│   ├── gateway/                     # API Gateway (3000)
+│   │   ├── server.js                # Express server (112 lines)
+│   │   └── routes/
+│   │       ├── code.js
+│   │       ├── dast.js
+│   │       ├── network.js
+│   │       └── repoScan.js
+│   ├── services/
+│   │   ├── code/                    # SAST engine (5002)
+│   │   │   ├── app.py               # Flask API (140 lines)
+│   │   │   ├── repo_scanner.py      # Background repo scanning
+│   │   │   ├── models/
+│   │   │   │   ├── rule_classifier.py       # Primary detector (87% acc)
+│   │   │   │   ├── codebert_classifier.py   # ML classifier
+│   │   │   │   └── weights/
+│   │   │   │       ├── codebert_classifier/  # Active CodeBERT weights
+│   │   │   │       └── codebert_classifier_old/  # Previous broken weights
+│   │   │   └── explanations/
+│   │   │       └── explanation_kb.py  # Structured finding explanations
+│   │   ├── network/                 # NIDS engine (5001)
+│   │   │   ├── app.py               # Flask API (89 lines)
+│   │   │   ├── models/
+│   │   │   │   ├── xgboost_model.py         # Supervised classifier
+│   │   │   │   ├── isolation_forest.py      # Anomaly detector
+│   │   │   │   ├── ensemble.py              # Combined prediction
+│   │   │   │   └── weights/
+│   │   │   │       ├── xgboost_model.pkl
+│   │   │   │       └── isolation_forest.pkl
+│   │   │   └── utils/
+│   │   │       └── feature_engineering.py
+│   │   └── dast/                    # DAST engine (5003)
+│   │       ├── app.py               # Flask API (785 lines)
+│   │       ├── active_scanner.py    # SQLi, XSS, IDOR probes
+│   │       └── passive_checks.py    # Header/config analysis
+│   └── shared/
+│       ├── schema/                   # MongoDB schemas
+│       └── triage/                   # Confidence-based triage engine
+├── frontend/
+│   └── dashboard/                    # React UI (3001)
 │       └── src/components/
 │           ├── UnifiedScanner.js
 │           ├── ThreatFeedSidebar.js
 │           └── StatsBar.js
-├── gateway/                     # API Gateway (3000)
-│   ├── server.js                # Express server (112 lines)
-│   └── routes/
-│       ├── code.js
-│       ├── dast.js
-│       ├── network.js
-│       └── repoScan.js
 ├── scripts/
 │   ├── train_xgboost.py         # XGBoost training
 │   ├── train_isolation_forest.py # IF training (percentile normalization)

@@ -155,11 +155,11 @@ To reproduce these results:
 
 ```bash
 # Network Module
-cd services/network
+cd backend/services/network
 python -c "from models.xgboost_model import XGBoostClassifier; m = XGBoostClassifier(); m.train('data/nsl-kdd.csv')"
 
 # Code Module
-cd services/code
+cd backend/services/code
 python -c "from models.codebert_classifier import CodeBERTClassifier; m = CodeBERTClassifier(); m.train('data/cve_dataset.csv')"
 ```
 

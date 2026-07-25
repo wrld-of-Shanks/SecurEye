@@ -171,7 +171,7 @@ def train_codet5_fast():
     print(f"\nFinal BLEU Score: {avg_bleu:.4f}")
     print(f"Final Exact Match Rate: {exact_match_rate:.1f}%")
     
-    save_path = '/Users/shanks/Desktop/Specula/services/code/models/weights/codet5_fixer'
+    save_path = '/Users/shanks/Desktop/Specula/backend/services/code/models/weights/codet5_fixer'
     os.makedirs(save_path, exist_ok=True)
     model.save_pretrained(save_path)
     tokenizer.save_pretrained(save_path)

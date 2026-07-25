@@ -111,7 +111,7 @@ def train_xgboost():
     cm = confusion_matrix(y_val, y_pred)
     print(cm)
     
-    save_path = '/Users/shanks/Desktop/Specula/services/network/models/weights/xgboost_model.pkl'
+    save_path = '/Users/shanks/Desktop/Specula/backend/services/network/models/weights/xgboost_model.pkl'
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
     joblib.dump({
         'model': model,

@@ -213,7 +213,7 @@ def train_codebert():
         zero_division=0
     ))
     
-    save_path = '/Users/shanks/Desktop/Specula/services/code/models/weights/codebert_classifier'
+    save_path = '/Users/shanks/Desktop/Specula/backend/services/code/models/weights/codebert_classifier'
     os.makedirs(save_path, exist_ok=True)
     model.save_pretrained(save_path)
     tokenizer.save_pretrained(save_path)

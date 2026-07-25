@@ -2,10 +2,10 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-COPY services/network/requirements.txt /app/requirements.txt
+COPY backend/services/network/requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY services/network/ /app/
+COPY backend/services/network/ /app/
 
 EXPOSE 5001
 

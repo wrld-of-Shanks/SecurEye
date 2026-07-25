@@ -21,7 +21,7 @@
 
 ## A. SAST Ablation — Rule-Based Fallback Impact
 
-**Component under study:** `services/code/models/rule_classifier.py`
+**Component under study:** `backend/services/code/models/rule_classifier.py`
 **Key design:** A regex-based `RuleBasedClassifier` that assigns hard-coded scores (e.g., 0.92 for SQLi string concatenation) and overrides the ML model when confidence < 0.30 (`rule_classifier.py:48-54`). It also supplies per-line `reasons` that the ML-only path cannot produce.
 
 ### A1: CodeBERT-only (no rule fallback)
@@ -92,7 +92,7 @@ The claim: A3 preserves >97% of CodeBERT's recall while reducing FPR by ~80% on 
 
 ## B. DAST Ablation — Certainty Classification Impact
 
-**Component under study:** `services/dast/app.py` — the `certainty_type` field.
+**Component under study:** `backend/services/dast/app.py` — the `certainty_type` field.
 **Key design:** Passive findings (header checks, TLS inspection, exposed metadata) are labeled `confirmed` (`dast/app.py:229`). Active findings (SQLi probes, XSS markers, IDOR, auth bypass) are labeled `inferred` with a numeric confidence (`dast/app.py:237-248`).
 
 ### B1: All findings as "inferred"
@@ -118,7 +118,7 @@ DAST_CERTAINTY_MODE=inferred python -m pytest tests/dast/ -k ablation_b1 --tb=sh
 ```
 
 **Metrics to report:**
-- Triage accuracy: % of findings routed to correct triage tier (`auto_flagged`, `human_review`, `ignored`) per `shared/triage/engine.js:12-21`
+- Triage accuracy: % of findings routed to correct triage tier (`auto_flagged`, `human_review`, `ignored`) per `backend/shared/triage/engine.js:12-21`
 - Mean time-to-action (MTTA) proxy: number of findings in `human_review` status (proxy for manual burden)
 - Under-trust rate: findings that should be `auto_flagged` but aren't
 
@@ -173,7 +173,7 @@ The claim: Split certainty achieves the best balance between automation confiden
 
 ## C. NIDS Ablation — Ensemble Override Impact
 
-**Component under study:** `services/network/app.py` — the `calculate_confidence()` and override logic.
+**Component under study:** `backend/services/network/app.py` — the `calculate_confidence()` and override logic.
 **Key design:** XGBoost provides supervised classification; Isolation Forest provides unsupervised anomaly detection. When the anomaly score > 0.7, the system overrides XGBoost's prediction to `novel_attack` (`app.py:43-44`). The `calculate_confidence` function returns the anomaly score if > 0.7, otherwise the supervised confidence (`app.py:69-72`).
 
 ### C1: XGBoost only (no Isolation Forest)
@@ -241,7 +241,7 @@ The claim: The ensemble preserves XGBoost's accuracy on known traffic while inhe
 
 ## D. Triage Ablation — Confidence Threshold Impact
 
-**Component under study:** `shared/triage/engine.js`
+**Component under study:** `backend/shared/triage/engine.js`
 **Key design:** Two thresholds — `auto_flag` at 0.90 and `human_review` at 0.50 (`engine.js:4-5`). Findings ≥ 0.90 are auto-flagged (critical/high), 0.50–0.90 go to human review, < 0.50 are ignored. The `classifyConfirmed()` path (`engine.js:26-38`) bypasses numeric thresholds and maps severity strings directly.
 
 ### D1: Threshold = 0.50 (low threshold)

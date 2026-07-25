@@ -94,7 +94,7 @@ Specula's evaluation relies on three datasets, all of which are publicly availab
 
 ### 3.2 Model Weights
 
-Pre-trained model weights are included in the repository for all four models. The fine-tuned CodeBERT classifier weights are stored in `services/code/models/weights/codebert_classifier_old/` (includes `config.json`, `merges.txt`, `model.safetensors`, `special_tokens_map.json`, `tokenizer_config.json`, and `vocab.json`). The fine-tuned CodeT5 fix generator weights are stored in `services/code/models/weights/codet5_fixer/` with equivalent file structure. The XGBoost classifier weights (`services/network/models/weights/xgboost_model.pkl`) and Isolation Forest detector weights (`services/network/models/weights/isolation_forest.pkl`) are serialized via joblib. All weights are sufficient for inference without retraining. For retraining, the training scripts are provided: `scripts/train_codebert_ultimate.py` (CodeBERT, recommended), `scripts/train_codet5.py` (CodeT5), `scripts/train_xgboost.py` (XGBoost), and `scripts/train_isolation_forest.py` (Isolation Forest). An umbrella script `scripts/train_all.py` orchestrates training of all models sequentially.
+Pre-trained model weights are included in the repository for all four models. The fine-tuned CodeBERT classifier weights are stored in `backend/services/code/models/weights/codebert_classifier_old/` (includes `config.json`, `merges.txt`, `model.safetensors`, `special_tokens_map.json`, `tokenizer_config.json`, and `vocab.json`). The fine-tuned CodeT5 fix generator weights are stored in `backend/services/code/models/weights/codet5_fixer/` with equivalent file structure. The XGBoost classifier weights (`backend/services/network/models/weights/xgboost_model.pkl`) and Isolation Forest detector weights (`backend/services/network/models/weights/isolation_forest.pkl`) are serialized via joblib. All weights are sufficient for inference without retraining. For retraining, the training scripts are provided: `scripts/train_codebert_ultimate.py` (CodeBERT, recommended), `scripts/train_codet5.py` (CodeT5), `scripts/train_xgboost.py` (XGBoost), and `scripts/train_isolation_forest.py` (Isolation Forest). An umbrella script `scripts/train_all.py` orchestrates training of all models sequentially.
 
 ### 3.3 Reproduction Commands
 
@@ -105,9 +105,9 @@ The following commands reproduce all evaluation results from a fresh clone:
 git clone <repository-url> && cd Specula
 
 # 2. Install Python dependencies for each service
-pip install -r services/code/requirements.txt
-pip install -r services/dast/requirements.txt
-pip install -r services/network/requirements.txt
+pip install -r backend/services/code/requirements.txt
+pip install -r backend/services/dast/requirements.txt
+pip install -r backend/services/network/requirements.txt
 
 # 3. Install Node.js dependencies for gateway tests
 cd gateway && npm install && cd ..
@@ -141,7 +141,7 @@ The repository includes Dockerfiles for all five application services (`Dockerfi
 
 ### 3.6 Evaluation Script Locations
 
-Evaluation scripts are distributed across the repository: gateway test suites in `gateway/__tests__/` (33 tests covering triage engine, validation schemas, and middleware); rule classifier tests are validated inline during training; DAST service tests verify passive and active check execution against localhost targets; and the ablation study experiments described in Section 4 are documented in `docs/ablation_study_plan.md` with executable command templates. The evaluation documentation in `docs/evaluation.md` provides additional context for interpreting results.
+Evaluation scripts are distributed across the repository: gateway test suites in `backend/gateway/__tests__/` (33 tests covering triage engine, validation schemas, and middleware); rule classifier tests are validated inline during training; DAST service tests verify passive and active check execution against localhost targets; and the ablation study experiments described in Section 4 are documented in `docs/ablation_study_plan.md` with executable command templates. The evaluation documentation in `docs/evaluation.md` provides additional context for interpreting results.
 
 ## 4. Ablation Study Design
 

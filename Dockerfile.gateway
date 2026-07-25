@@ -2,12 +2,12 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-COPY shared/ /app/shared/
-COPY gateway/package*.json /app/gateway/
+COPY backend/shared/ /app/shared/
+COPY backend/gateway/package*.json /app/gateway/
 WORKDIR /app/gateway
 RUN npm install
 
-COPY gateway/ /app/gateway/
+COPY backend/gateway/ /app/gateway/
 
 EXPOSE 3000
 
