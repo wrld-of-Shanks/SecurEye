@@ -1,11 +1,18 @@
 import React from 'react';
-import { Shield } from 'lucide-react';
+import { Shield, Trash2 } from 'lucide-react';
 import FindingCard from './FindingCard';
 
-const ThreatFeed = ({ events }) => {
+const ThreatFeed = ({ events, onClear }) => {
   return (
     <div className="threat-feed">
-      <h2>Live Threat Feed</h2>
+      <div className="feed-header">
+        <h2>Live Threat Feed</h2>
+        {events.length > 0 && (
+          <button onClick={onClear} className="clear-btn">
+            <Trash2 className="icon-sm" /> Clear
+          </button>
+        )}
+      </div>
 
       {events.length === 0 ? (
         <div className="no-events">

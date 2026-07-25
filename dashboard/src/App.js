@@ -45,6 +45,8 @@ function App() {
     }
   };
 
+  const clearEvents = () => setEvents([]);
+
   return (
     <div className="app">
       <header className="header">
@@ -86,7 +88,7 @@ function App() {
             <div className="loading">Loading...</div>
           ) : (
             <>
-              {activeTab === 'feed' && <ThreatFeed events={events} />}
+              {activeTab === 'feed' && <ThreatFeed events={events} onClear={clearEvents} />}
               {activeTab === 'scanner' && <CodeScanner />}
               {activeTab === 'repo-scans' && <RepoScans />}
               {activeTab === 'dast' && <DastScanner />}
