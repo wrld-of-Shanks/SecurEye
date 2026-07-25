@@ -22,9 +22,14 @@ const eventSchema = new mongoose.Schema({
   },
   confidence: {
     type: Number,
-    required: true,
     min: 0,
-    max: 1
+    max: 1,
+    default: null
+  },
+  certainty_type: {
+    type: String,
+    enum: ['confirmed', 'inferred', null],
+    default: null
   },
   severity: {
     type: String,

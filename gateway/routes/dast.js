@@ -58,13 +58,21 @@ module.exports = function(dastService, triageEngine, wss) {
 
       const savedFindings = [];
       for (const finding of (result.findings || [])) {
-        const triageResult = triageEngine.classify(finding.confidence, finding);
+        const certaintyType = finding.certainty_type || finding.explanation?.certainty_type || 'inferred';
+
+        let triageResult;
+        if (certaintyType === 'confirmed') {
+          triageResult = triageEngine.classifyConfirmed(finding.severity || 'medium');
+        } else {
+          triageResult = triageEngine.classify(finding.confidence, finding);
+        }
 
         const event = new Event({
           event_type: 'dast',
           source: target_url,
           prediction: finding.check_name,
-          confidence: finding.confidence,
+          confidence: certaintyType === 'confirmed' ? null : finding.confidence,
+          certainty_type: certaintyType,
           severity: triageResult.severity,
           status: triageResult.status,
           explanation: finding.explanation || null,
@@ -86,6 +94,7 @@ module.exports = function(dastService, triageEngine, wss) {
           event_id: f._id,
           prediction: f.prediction,
           confidence: f.confidence,
+          certainty_type: f.certainty_type,
           severity: f.severity,
           status: f.status,
           explanation: f.explanation

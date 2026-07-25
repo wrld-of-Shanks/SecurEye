@@ -146,6 +146,7 @@ module.exports = function(codeService, triageEngine, wss) {
                   source: repo_url,
                   prediction: result.prediction,
                   confidence: result.confidence,
+                  certainty_type: 'inferred',
                   severity: triageResult.severity,
                   status: triageResult.status,
                   explanation: {

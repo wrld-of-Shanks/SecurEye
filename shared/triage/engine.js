@@ -23,6 +23,20 @@ class TriageEngine {
     return { status, severity };
   }
 
+  classifyConfirmed(severity) {
+    const statusMap = {
+      'critical': 'auto_flagged',
+      'high': 'auto_flagged',
+      'medium': 'human_review',
+      'low': 'human_review',
+      'info': 'ignored'
+    };
+    return {
+      status: statusMap[severity] || 'human_review',
+      severity
+    };
+  }
+
   determineSeverity(confidence, result) {
     if (confidence >= 0.95) return 'critical';
     if (confidence >= 0.85) return 'high';

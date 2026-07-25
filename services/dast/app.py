@@ -21,70 +21,80 @@ CWE_KB = {
         'name': 'Content Security Policy Missing', 'severity': 'medium',
         'what_template': 'The Content Security Policy (CSP) header is not set on responses from {endpoint}. This means no restrictions are placed on what resources the browser can load, scripts it can execute, or origins it can connect to.',
         'why_template': 'Without CSP, the application is more vulnerable to cross-site scripting (XSS) and data injection attacks. An attacker who finds any XSS vector can execute arbitrary JavaScript without CSP blocking the malicious resource.',
-        'remediation': 'Add a Content-Security-Policy header with appropriate directives. Start with a restrictive policy and relax as needed. Example: "Content-Security-Policy: default-src \'self\'; script-src \'self\'; style-src \'self\' \'unsafe-inline\'"'
+        'remediation': 'Add a Content-Security-Policy header with appropriate directives. Start with a restrictive policy and relax as needed. Example: "Content-Security-Policy: default-src \'self\'; script-src \'self\'; style-src \'self\' \'unsafe-inline\'"',
+        'passive_fact': 'CSP header absent in response'
     },
     'missing_hsts': {
         'cwe': 'CWE-319', 'owasp': 'A02:2021 - Cryptographic Failures',
         'name': 'HSTS Not Enabled', 'severity': 'medium',
         'what_template': 'The Strict-Transport-Security (HSTS) header is not set on responses from {endpoint}. Browsers will not enforce HTTPS-only connections for this domain.',
         'why_template': 'Without HSTS, users who type the URL without https:// or follow old bookmarks may connect over plain HTTP, allowing an active network attacker to intercept or modify traffic via downgrade attacks.',
-        'remediation': 'Add the header: "Strict-Transport-Security: max-age=63072000; includeSubDomains; preload". Start with a short max-age for testing, then increase.'
+        'remediation': 'Add the header: "Strict-Transport-Security: max-age=63072000; includeSubDomains; preload". Start with a short max-age for testing, then increase.',
+        'passive_fact': 'HSTS header absent in response'
     },
     'missing_xfo': {
         'cwe': 'CWE-1021', 'owasp': 'A05:2021 - Security Misconfiguration',
         'name': 'X-Frame-Options Missing', 'severity': 'medium',
         'what_template': 'Neither X-Frame-Options nor a CSP frame-ancestors directive is set on responses from {endpoint}. The page can be embedded in iframes on arbitrary third-party sites.',
         'why_template': 'This enables clickjacking attacks where an attacker overlays invisible iframes over legitimate UI elements, tricking users into performing unintended actions.',
-        'remediation': 'Add "X-Frame-Options: DENY" or use CSP "frame-ancestors \'none\'" to prevent framing entirely. If embedding is needed, use "frame-ancestors \'self\'" with a specific allowlist.'
+        'remediation': 'Add "X-Frame-Options: DENY" or use CSP "frame-ancestors \'none\'" to prevent framing entirely. If embedding is needed, use "frame-ancestors \'self\'" with a specific allowlist.',
+        'passive_fact': 'Neither X-Frame-Options nor CSP frame-ancestors present'
     },
     'insecure_cookies': {
         'cwe': 'CWE-614', 'owasp': 'A05:2021 - Security Misconfiguration',
         'name': 'Insecure Cookie Configuration', 'severity': 'medium',
         'what_template': 'Cookies set by {endpoint} are missing security flags: {missing_flags}. These cookies will be transmitted over unencrypted connections and/or accessible to client-side JavaScript.',
         'why_template': 'Cookies without HttpOnly can be stolen via XSS. Cookies without Secure can be intercepted on HTTP connections. Cookies without SameSite are vulnerable to CSRF attacks.',
-        'remediation': 'Set all cookie flags: HttpOnly (prevents JavaScript access), Secure (HTTPS only), SameSite=Strict or Lax (prevents cross-site sending). Example: Set-Cookie: session=abc; HttpOnly; Secure; SameSite=Lax'
+        'remediation': 'Set all cookie flags: HttpOnly (prevents JavaScript access), Secure (HTTPS only), SameSite=Strict or Lax (prevents cross-site sending). Example: Set-Cookie: session=abc; HttpOnly; Secure; SameSite=Lax',
+        'passive_fact': 'Cookie missing flags: {missing_flags}'
     },
     'cors_misconfiguration': {
         'cwe': 'CWE-942', 'owasp': 'A05:2021 - Security Misconfiguration',
         'name': 'CORS Misconfiguration', 'severity': 'high',
         'what_template': 'The server at {endpoint} responds with Access-Control-Allow-Origin: * combined with Access-Control-Allow-Credentials: true. This allows any origin to make credentialed cross-origin requests.',
         'why_template': 'An attacker can host a malicious page that makes authenticated requests to this application using the victim\'s cookies, reading sensitive data or performing actions on their behalf.',
-        'remediation': 'Never use wildcard (*) with credentials. Instead, echo back the specific allowed origin: "Access-Control-Allow-Origin: https://yourdomain.com". Maintain an explicit allowlist of trusted origins.'
+        'remediation': 'Never use wildcard (*) with credentials. Instead, echo back the specific allowed origin: "Access-Control-Allow-Origin: https://yourdomain.com". Maintain an explicit allowlist of trusted origins.',
+        'passive_fact': 'Access-Control-Allow-Origin: * with credentials=true'
     },
     'error_disclosure': {
         'cwe': 'CWE-209', 'owasp': 'A04:2021 - Insecure Design',
         'name': 'Error Message Information Disclosure', 'severity': 'low',
         'what_template': 'The server at {endpoint} returns detailed error messages (stack traces, database errors, or framework debug pages) when given malformed input.',
         'why_template': 'Verbose error messages reveal internal implementation details: file paths, database schema, framework versions, and code structure. This information helps attackers craft more targeted exploits.',
-        'remediation': 'Implement custom error handlers that return generic error messages. Log detailed errors server-side only. Disable debug mode in production. Use error monitoring tools instead of exposing errors to users.'
+        'remediation': 'Implement custom error handlers that return generic error messages. Log detailed errors server-side only. Disable debug mode in production. Use error monitoring tools instead of exposing errors to users.',
+        'passive_fact': 'Error pattern "{extra_detail}" matched in response'
     },
     'server_banner_disclosure': {
         'cwe': 'CWE-200', 'owasp': 'A01:2021 - Broken Access Control',
         'name': 'Server Version Disclosure', 'severity': 'info',
         'what_template': 'The Server header at {endpoint} discloses version information: {banner}. This reveals the exact software and version running on the server.',
         'why_template': 'Attackers can use version information to look up known vulnerabilities for that specific software version, making exploitation faster and more targeted.',
-        'remediation': 'Remove or obfuscate the Server header. In Apache: "ServerTokens Prod" and "ServerSignature Off". In Nginx: "server_tokens off". Do not expose version numbers in any response header.'
+        'remediation': 'Remove or obfuscate the Server header. In Apache: "ServerTokens Prod" and "ServerSignature Off". In Nginx: "server_tokens off". Do not expose version numbers in any response header.',
+        'passive_fact': 'Server header reveals: {banner}'
     },
     'exposed_metadata': {
         'cwe': 'CWE-538', 'owasp': 'A01:2021 - Broken Access Control',
         'name': 'Sensitive File/Path Exposed', 'severity': 'high',
         'what_template': 'A sensitive file is publicly accessible at {endpoint}: {file_detail}. This exposes configuration data, source control metadata, or environment variables.',
         'why_template': 'Exposed .git directories reveal the full source code history including credentials that may have been committed then removed. Exposed .env files contain secrets directly. Exposed robots.txt reveals hidden admin paths.',
-        'remediation': 'Block access to sensitive paths at the web server level. For .git: "RedirectMatch 404 \\.git" in Apache or "location ~ /.git { deny all; }" in Nginx. For .env: serve from outside the web root or block access. Audit git history for leaked secrets.'
+        'remediation': 'Block access to sensitive paths at the web server level. For .git: "RedirectMatch 404 \\.git" in Apache or "location ~ /.git { deny all; }" in Nginx. For .env: serve from outside the web root or block access. Audit git history for leaked secrets.',
+        'passive_fact': '{file_detail}'
     },
     'open_redirect': {
         'cwe': 'CWE-601', 'owasp': 'A01:2021 - Broken Access Control',
         'name': 'Open Redirect Detected', 'severity': 'medium',
         'what_template': 'The endpoint {endpoint} accepts a redirect parameter that forwards users to an arbitrary external URL without validation.',
         'why_template': 'Open redirects are commonly used in phishing attacks: the attacker crafts a link that appears to go to the legitimate site but redirects to a malicious page, stealing credentials or delivering malware.',
-        'remediation': 'Validate redirect targets against a strict allowlist of permitted domains. Never redirect to user-supplied URLs. Use relative paths for internal redirects. If external redirects are needed, show an interstitial page warning the user.'
+        'remediation': 'Validate redirect targets against a strict allowlist of permitted domains. Never redirect to user-supplied URLs. Use relative paths for internal redirects. If external redirects are needed, show an interstitial page warning the user.',
+        'passive_fact': 'Parameter "{extra_detail}" redirected to external domain without validation'
     },
     'weak_tls': {
         'cwe': 'CWE-326', 'owasp': 'A02:2021 - Cryptographic Failures',
         'name': 'Weak TLS Configuration', 'severity': 'high',
         'what_template': 'The server at {endpoint} uses a weak or outdated TLS configuration: {tls_detail}.',
         'why_template': 'Weak TLS protocols (TLS 1.0, 1.1, SSLv3) and expired certificates mean that encrypted connections can be intercepted, decrypted, or are not properly authenticated, allowing man-in-the-middle attacks.',
-        'remediation': 'Disable TLS 1.0 and 1.1. Use TLS 1.2 or 1.3 only. Obtain a valid certificate from a trusted CA and set up automated renewal. Use tools like Mozilla SSL Configuration Generator for recommended settings.'
+        'remediation': 'Disable TLS 1.0 and 1.1. Use TLS 1.2 or 1.3 only. Obtain a valid certificate from a trusted CA and set up automated renewal. Use tools like Mozilla SSL Configuration Generator for recommended settings.',
+        'passive_fact': '{tls_detail}'
     },
     'sqli_indicator': {
         'cwe': 'CWE-89', 'owasp': 'A03:2021 - Injection',
@@ -134,8 +144,9 @@ def _parse_endpoint(target_url, path=None, param=None, header=None):
     return endpoint, parts
 
 
-def _build_explanation(check_name, target_url, confidence, detection_source,
-                       path=None, param=None, header=None, extra_detail=None):
+def _build_explanation(check_name, target_url, detection_source,
+                       path=None, param=None, header=None, extra_detail=None,
+                       confidence=None):
     kb = CWE_KB.get(check_name)
     if not kb:
         return None
@@ -158,14 +169,7 @@ def _build_explanation(check_name, target_url, confidence, detection_source,
     else:
         where = endpoint
 
-    strength = 'high' if confidence >= 0.90 else ('medium' if confidence >= 0.70 else 'low')
-    if strength == 'high':
-        qualifier = 'exact behavioral match against known-vulnerable pattern'
-    elif strength == 'medium':
-        qualifier = 'behavior consistent with the issue but not confirmed'
-    else:
-        qualifier = 'indirect indicators suggest this issue may be present'
-
+    is_passive = detection_source in ('passive_check', 'passive_probe')
     source_labels = {
         'passive_check': 'passive header/content analysis',
         'passive_probe': 'passive observation of server behavior',
@@ -173,7 +177,28 @@ def _build_explanation(check_name, target_url, confidence, detection_source,
         'active_probe_confirmed': 'active injection probe with measurable response anomaly'
     }
     source_desc = source_labels.get(detection_source, 'automated analysis')
-    confidence_note = f'{strength} confidence ({confidence:.0%}): {source_desc} — {qualifier}'
+
+    if is_passive:
+        certainty_type = 'confirmed'
+        fact_template = kb.get('passive_fact', '')
+        observed_fact = fact_template.format(
+            endpoint=endpoint, extra_detail=extra_detail or '',
+            banner=extra_detail or '', file_detail=extra_detail or '',
+            tls_detail=extra_detail or '', missing_flags=extra_detail or ''
+        )
+        confidence_note = f'Confirmed by direct inspection — {observed_fact}'
+    else:
+        certainty_type = 'inferred'
+        if confidence is None:
+            confidence = 0.70
+        strength = 'high' if confidence >= 0.90 else ('medium' if confidence >= 0.70 else 'low')
+        if strength == 'high':
+            qualifier = 'exact behavioral match against known-vulnerable pattern'
+        elif strength == 'medium':
+            qualifier = 'behavior consistent with the issue but not confirmed'
+        else:
+            qualifier = 'indirect indicators suggest this issue may be present'
+        confidence_note = f'{strength} confidence ({confidence:.0%}): {source_desc} — {qualifier}'
 
     return {
         'what': what,
@@ -187,6 +212,7 @@ def _build_explanation(check_name, target_url, confidence, detection_source,
             'guidance': kb['remediation'],
             'suggested_code_fix': None
         },
+        'certainty_type': certainty_type,
         'confidence_note': confidence_note
     }
 
@@ -201,30 +227,27 @@ def check_security_headers(url, session):
         if 'content-security-policy' not in headers:
             findings.append({
                 'check_name': 'missing_csp',
-                'confidence': 0.85,
+                'certainty_type': 'confirmed',
                 'explanation': _build_explanation(
-                    'missing_csp', url, 0.85, 'passive_check',
-                    path=parsed.path
+                    'missing_csp', url, 'passive_check', path=parsed.path
                 )
             })
 
         if 'strict-transport-security' not in headers:
             findings.append({
                 'check_name': 'missing_hsts',
-                'confidence': 0.80,
+                'certainty_type': 'confirmed',
                 'explanation': _build_explanation(
-                    'missing_hsts', url, 0.80, 'passive_check',
-                    path=parsed.path
+                    'missing_hsts', url, 'passive_check', path=parsed.path
                 )
             })
 
         if 'x-frame-options' not in headers and 'content-security-policy' not in headers:
             findings.append({
                 'check_name': 'missing_xfo',
-                'confidence': 0.75,
+                'certainty_type': 'confirmed',
                 'explanation': _build_explanation(
-                    'missing_xfo', url, 0.75, 'passive_check',
-                    path=parsed.path
+                    'missing_xfo', url, 'passive_check', path=parsed.path
                 )
             })
 
@@ -232,9 +255,9 @@ def check_security_headers(url, session):
         if server and re.search(r'[\d\.]+', server):
             findings.append({
                 'check_name': 'server_banner_disclosure',
-                'confidence': 0.90,
+                'certainty_type': 'confirmed',
                 'explanation': _build_explanation(
-                    'server_banner_disclosure', url, 0.90, 'passive_check',
+                    'server_banner_disclosure', url, 'passive_check',
                     path=parsed.path, extra_detail=server
                 )
             })
@@ -253,20 +276,19 @@ def check_security_headers(url, session):
             if issues:
                 findings.append({
                     'check_name': 'insecure_cookies',
-                    'confidence': 0.85,
+                    'certainty_type': 'confirmed',
                     'explanation': _build_explanation(
-                        'insecure_cookies', url, 0.85, 'passive_check',
-                        path=parsed.path,
-                        extra_detail=', '.join(issues)
+                        'insecure_cookies', url, 'passive_check',
+                        path=parsed.path, extra_detail=', '.join(issues)
                     )
                 })
 
     except requests.exceptions.SSLError:
         findings.append({
             'check_name': 'weak_tls',
-            'confidence': 0.90,
+            'certainty_type': 'confirmed',
             'explanation': _build_explanation(
-                'weak_tls', url, 0.90, 'passive_check',
+                'weak_tls', url, 'passive_check',
                 extra_detail='SSL/TLS handshake failure'
             )
         })
@@ -287,10 +309,9 @@ def check_cors(url, session):
             parsed = urlparse(url)
             findings.append({
                 'check_name': 'cors_misconfiguration',
-                'confidence': 0.95,
+                'certainty_type': 'confirmed',
                 'explanation': _build_explanation(
-                    'cors_misconfiguration', url, 0.95, 'passive_check',
-                    path=parsed.path
+                    'cors_misconfiguration', url, 'passive_check', path=parsed.path
                 )
             })
     except Exception:
@@ -319,9 +340,9 @@ def check_error_disclosure(url, session):
                     parsed = urlparse(murl)
                     findings.append({
                         'check_name': 'error_disclosure',
-                        'confidence': 0.80,
+                        'certainty_type': 'confirmed',
                         'explanation': _build_explanation(
-                            'error_disclosure', url, 0.80, 'passive_check',
+                            'error_disclosure', url, 'passive_check',
                             path=parsed.path,
                             extra_detail=f'error pattern "{pattern}" matched'
                         )
@@ -355,13 +376,10 @@ def check_exposed_metadata(url, session):
 
                 findings.append({
                     'check_name': 'exposed_metadata',
-                    'confidence': 0.95 if sp != '/robots.txt' else 0.60,
+                    'certainty_type': 'confirmed',
                     'explanation': _build_explanation(
-                        'exposed_metadata', url,
-                        0.95 if sp != '/robots.txt' else 0.60,
-                        'passive_check',
-                        path=parsed.path,
-                        extra_detail=file_detail
+                        'exposed_metadata', url, 'passive_check',
+                        path=parsed.path, extra_detail=file_detail
                     )
                 })
         except Exception:
@@ -381,9 +399,9 @@ def check_open_redirect(url, session):
             if 'evil.example.com' in location:
                 findings.append({
                     'check_name': 'open_redirect',
-                    'confidence': 0.90,
+                    'certainty_type': 'confirmed',
                     'explanation': _build_explanation(
-                        'open_redirect', url, 0.90, 'passive_probe',
+                        'open_redirect', url, 'passive_probe',
                         path=parsed.path, param=param
                     )
                 })
@@ -402,9 +420,9 @@ def check_tls(url, session):
     if parsed.scheme != 'https':
         findings.append({
             'check_name': 'weak_tls',
-            'confidence': 0.90,
+            'certainty_type': 'confirmed',
             'explanation': _build_explanation(
-                'weak_tls', url, 0.90, 'passive_check',
+                'weak_tls', url, 'passive_check',
                 extra_detail='Site does not use HTTPS — plain HTTP connection'
             )
         })
@@ -421,9 +439,9 @@ def check_tls(url, session):
             if protocol in ('TLSv1', 'TLSv1.1', 'SSLv3', 'SSLv2'):
                 findings.append({
                     'check_name': 'weak_tls',
-                    'confidence': 0.95,
+                    'certainty_type': 'confirmed',
                     'explanation': _build_explanation(
-                        'weak_tls', url, 0.95, 'passive_check',
+                        'weak_tls', url, 'passive_check',
                         extra_detail=f'Negotiated protocol: {protocol} (deprecated)'
                     )
                 })
@@ -436,9 +454,9 @@ def check_tls(url, session):
                     if exp < datetime.utcnow():
                         findings.append({
                             'check_name': 'weak_tls',
-                            'confidence': 0.95,
+                            'certainty_type': 'confirmed',
                             'explanation': _build_explanation(
-                                'weak_tls', url, 0.95, 'passive_check',
+                                'weak_tls', url, 'passive_check',
                                 extra_detail=f'Certificate expired: {not_after}'
                             )
                         })
@@ -480,10 +498,11 @@ def run_active_sqli_check(url, session):
                 if any(kw in resp.text.lower() for kw in ['sql', 'syntax', 'mysql', 'sqlite', 'error', 'query']):
                     findings.append({
                         'check_name': 'sqli_indicator',
+                        'certainty_type': 'inferred',
                         'confidence': 0.85,
                         'explanation': _build_explanation(
-                            'sqli_indicator', url, 0.85, 'active_probe_confirmed',
-                            path=parsed.path, param='id',
+                            'sqli_indicator', url, 'active_probe_confirmed',
+                            path=parsed.path, param='id', confidence=0.85,
                             extra_detail=f'Status changed from {baseline_resp.status_code} to {resp.status_code} with SQL error keywords'
                         ),
                         'evidence': {
@@ -498,10 +517,11 @@ def run_active_sqli_check(url, session):
             if abs(resp_len - baseline_len) > max(500, baseline_len * 0.3):
                 findings.append({
                     'check_name': 'sqli_indicator',
+                    'certainty_type': 'inferred',
                     'confidence': 0.65,
                     'explanation': _build_explanation(
-                        'sqli_indicator', url, 0.65, 'active_probe',
-                        path=parsed.path, param='id',
+                        'sqli_indicator', url, 'active_probe',
+                        path=parsed.path, param='id', confidence=0.65,
                         extra_detail=f'Response size changed from {baseline_len} to {resp_len} bytes'
                     )
                 })
@@ -522,10 +542,11 @@ def run_active_xss_check(url, session):
             if 'html' in content_type or 'text' in content_type:
                 findings.append({
                     'check_name': 'xss_reflection',
+                    'certainty_type': 'inferred',
                     'confidence': 0.80,
                     'explanation': _build_explanation(
-                        'xss_reflection', url, 0.80, 'active_probe_confirmed',
-                        path=parsed.path, param='q',
+                        'xss_reflection', url, 'active_probe_confirmed',
+                        path=parsed.path, param='q', confidence=0.80,
                         extra_detail='Probe marker found in HTML response body'
                     ),
                     'evidence': {
@@ -564,10 +585,11 @@ def run_active_idor_check(url, session):
     if different_responses >= 2:
         findings.append({
             'check_name': 'idor_indicator',
+            'certainty_type': 'inferred',
             'confidence': 0.70,
             'explanation': _build_explanation(
-                'idor_indicator', url, 0.70, 'active_probe',
-                path=parsed.path, param='id',
+                'idor_indicator', url, 'active_probe',
+                path=parsed.path, param='id', confidence=0.70,
                 extra_detail=f'{different_responses}/{len(test_ids)} ID variations returned distinct responses'
             )
         })
@@ -589,10 +611,11 @@ def run_active_auth_bypass_check(url, session):
                 if any(kw in body for kw in ['dashboard', 'admin panel', 'manage', 'settings', 'users list']):
                     findings.append({
                         'check_name': 'auth_bypass',
+                        'certainty_type': 'inferred',
                         'confidence': 0.75,
                         'explanation': _build_explanation(
-                            'auth_bypass', url, 0.75, 'active_probe',
-                            path=ap,
+                            'auth_bypass', url, 'active_probe',
+                            path=ap, confidence=0.75,
                             extra_detail=f'Admin content rendered at {ap} without auth redirect'
                         )
                     })
@@ -637,8 +660,11 @@ def scan():
     if mode == 'active':
         findings.extend(run_active_checks(target_url, session))
 
-    if not verbose_evidence:
-        for f in findings:
+    for f in findings:
+        kb = CWE_KB.get(f.get('check_name', ''))
+        if kb:
+            f['severity'] = kb.get('severity', 'medium')
+        if not verbose_evidence:
             f.pop('evidence', None)
 
     return jsonify({

@@ -245,6 +245,7 @@ class ExplanationKB:
             'location': location,
             'reference': reference,
             'remediation': remediation,
+            'certainty_type': 'inferred',
             'confidence_note': confidence_note
         }
 

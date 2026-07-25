@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, Shield, Info, CheckCircle, MapPin, BookOpen, Wrench, MessageCircle } from 'lucide-react';
+import { AlertTriangle, Shield, Info, CheckCircle, MapPin, BookOpen, Wrench, MessageCircle, Check } from 'lucide-react';
 
 const getSeverityColor = (severity) => {
   switch (severity) {
@@ -30,9 +30,12 @@ const formatTimestamp = (ts) => ts ? new Date(ts).toLocaleString() : null;
 const FindingCard = ({ event, showType = true, showFile = false }) => {
   const exp = event.explanation || {};
   const rem = exp.remediation || {};
+  const certaintyType = event.certainty_type || exp.certainty_type || null;
+  const isConfirmed = certaintyType === 'confirmed';
+  const confidence = event.confidence;
 
   return (
-    <div className={`event-card ${event.severity}`}>
+    <div className={`event-card ${event.severity} ${isConfirmed ? 'confirmed' : 'inferred'}`}>
       <div className="event-header">
         <div className="event-icon">
           {getSeverityIcon(event.severity)}
@@ -40,7 +43,7 @@ const FindingCard = ({ event, showType = true, showFile = false }) => {
         <div className="event-info">
           <span className="event-type">
             {showType && <span className={`event-type-badge ${event.event_type}`}>{event.event_type}</span>}
-            {' '}{event.prediction}
+            {' '}{event.prediction?.replace(/_/g, ' ')}
           </span>
           <span className="event-time">
             {event.file_path && <span className="file-badge">{event.file_path}</span>}
@@ -54,19 +57,27 @@ const FindingCard = ({ event, showType = true, showFile = false }) => {
         </div>
       </div>
 
-      <div className="event-body">
-        <div>
-          <strong>Confidence:</strong>
-          <span className="confidence-value"> {(event.confidence * 100).toFixed(1)}%</span>
+      <div className="certainty-row">
+        {isConfirmed ? (
+          <span className="certainty-badge confirmed">
+            <Check className="icon-xs" /> Confirmed — direct inspection
+          </span>
+        ) : confidence != null ? (
+          <span className="certainty-badge inferred">
+            <span className="confidence-pct">{(confidence * 100).toFixed(0)}%</span> confidence — inferred
+          </span>
+        ) : null}
+        <div className="event-body-inline">
+          {event.file_path && (
+            <span className="meta-pill"><MapPin className="icon-xs" /> {event.file_path}</span>
+          )}
+          {exp.reference?.cwe && exp.reference.cwe !== 'N/A' && (
+            <span className="meta-pill cwe-ref">{exp.reference.cwe}</span>
+          )}
+          {exp.reference?.owasp && exp.reference.owasp !== 'N/A' && (
+            <span className="meta-pill owasp-ref">{exp.reference.owasp}</span>
+          )}
         </div>
-        <div><strong>Status:</strong> {event.status}</div>
-        {exp.reference?.cwe && exp.reference.cwe !== 'N/A' && (
-          <div><strong>Ref:</strong> <span className="cwe-ref">{exp.reference.cwe}</span>
-            {exp.reference.owasp && exp.reference.owasp !== 'N/A' && (
-              <span className="owasp-ref"> / {exp.reference.owasp}</span>
-            )}
-          </div>
-        )}
       </div>
 
       {exp.what && (
@@ -91,8 +102,8 @@ const FindingCard = ({ event, showType = true, showFile = false }) => {
       )}
 
       {exp.confidence_note && (
-        <div className="explanation-section confidence-note-section">
-          <h4><BookOpen className="icon-sm" /> Confidence</h4>
+        <div className={`explanation-section confidence-note-section ${isConfirmed ? 'confirmed-note' : 'inferred-note'}`}>
+          <h4><BookOpen className="icon-sm" /> {isConfirmed ? 'Evidence' : 'Confidence'}</h4>
           <p className="confidence-note-text">{exp.confidence_note}</p>
         </div>
       )}
