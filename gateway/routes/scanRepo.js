@@ -195,7 +195,7 @@ module.exports = function(codeService, triageEngine, wss) {
       const job = await ScanJob.findById(req.params.jobId);
       if (!job) return res.status(404).json({ error: 'Scan job not found' });
 
-      const events = await Event.find({ job_id: job._id }).sort({ confidence: -1 });
+      const events = await Event.find({ job_id: job._id }).sort({ confidence: -1, file_path: 1 });
 
       const byFile = {};
       for (const evt of events) {

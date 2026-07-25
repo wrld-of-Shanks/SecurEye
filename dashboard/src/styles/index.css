@@ -645,6 +645,18 @@ body {
   gap: 0.25rem;
 }
 
+.job-error {
+  margin-top: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 4px;
+  color: #ef4444;
+  font-size: 0.8rem;
+  font-family: 'Monaco', 'Menlo', monospace;
+  word-break: break-word;
+}
+
 .status-badge {
   padding: 0.2rem 0.6rem;
   border-radius: 9999px;
@@ -945,4 +957,31 @@ body {
 
 .event-card.inferred {
   border-left: 3px solid #f59e0b;
+}
+
+.source-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.source-dast { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+.source-scan_repo { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+.source-code { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+.source-network { background: rgba(139, 92, 246, 0.15); color: #8b5cf6; }
+
+.where-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.where-content .location-pre {
+  flex: 1;
+  margin: 0;
 }

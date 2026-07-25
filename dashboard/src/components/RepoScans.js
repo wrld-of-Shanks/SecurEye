@@ -101,6 +101,9 @@ const RepoScans = () => {
                   <span><AlertTriangle className="icon-sm" /> {job.finding_count} findings</span>
                   <span><Clock className="icon-sm" /> {new Date(job.started_at).toLocaleString()}</span>
                 </div>
+                {job.status === 'failed' && job.error && (
+                  <div className="job-error">{job.error}</div>
+                )}
               </div>
             ))}
           </div>

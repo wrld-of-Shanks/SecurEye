@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, Shield, Info, CheckCircle, MapPin, BookOpen, Wrench, MessageCircle, Check } from 'lucide-react';
+import { AlertTriangle, Shield, Info, CheckCircle, MapPin, BookOpen, Wrench, MessageCircle, Check, Code, GitBranch, Globe } from 'lucide-react';
 
 const getSeverityColor = (severity) => {
   switch (severity) {
@@ -25,6 +25,51 @@ const getSeverityIcon = (severity) => {
   }
 };
 
+const getSourceInfo = (event) => {
+  const type = event.event_type;
+  const source = event.source || '';
+
+  switch (type) {
+    case 'dast':
+      return {
+        label: 'website',
+        icon: <Globe className="icon-xs" />,
+        detail: source,
+        where: event.explanation?.location || source
+      };
+    case 'scan_repo':
+      return {
+        label: 'repo',
+        icon: <GitBranch className="icon-xs" />,
+        detail: source,
+        where: event.file_path
+          ? `${event.file_path}${event.line_range?.start ? ` L${event.line_range.start}-${event.line_range.end}` : ''}`
+          : source
+      };
+    case 'code':
+      return {
+        label: 'code',
+        icon: <Code className="icon-xs" />,
+        detail: null,
+        where: event.explanation?.location || 'manual scan'
+      };
+    case 'network':
+      return {
+        label: 'network',
+        icon: <Info className="icon-xs" />,
+        detail: source,
+        where: source
+      };
+    default:
+      return {
+        label: type || 'unknown',
+        icon: null,
+        detail: source,
+        where: event.explanation?.location || source
+      };
+  }
+};
+
 const formatTimestamp = (ts) => ts ? new Date(ts).toLocaleString() : null;
 
 const FindingCard = ({ event, showType = true, showFile = false }) => {
@@ -33,6 +78,7 @@ const FindingCard = ({ event, showType = true, showFile = false }) => {
   const certaintyType = event.certainty_type || exp.certainty_type || null;
   const isConfirmed = certaintyType === 'confirmed';
   const confidence = event.confidence;
+  const sourceInfo = getSourceInfo(event);
 
   return (
     <div className={`event-card ${event.severity} ${isConfirmed ? 'confirmed' : 'inferred'}`}>
@@ -46,9 +92,10 @@ const FindingCard = ({ event, showType = true, showFile = false }) => {
             {' '}{event.prediction?.replace(/_/g, ' ')}
           </span>
           <span className="event-time">
-            {event.file_path && <span className="file-badge">{event.file_path}</span>}
-            {event.line_range?.start && ` L${event.line_range.start}-${event.line_range.end}`}
-            {event.mode && !event.file_path && <span className={`mode-badge ${event.mode}`}>{event.mode}</span>}
+            <span className={`source-badge source-${event.event_type}`}>
+              {sourceInfo.icon} {sourceInfo.label}
+            </span>
+            {event.mode && <span className={`mode-badge ${event.mode}`}>{event.mode}</span>}
             {!event.file_path && !event.mode && event.timestamp && ` ${formatTimestamp(event.timestamp)}`}
           </span>
         </div>
@@ -68,9 +115,6 @@ const FindingCard = ({ event, showType = true, showFile = false }) => {
           </span>
         ) : null}
         <div className="event-body-inline">
-          {event.file_path && (
-            <span className="meta-pill"><MapPin className="icon-xs" /> {event.file_path}</span>
-          )}
           {exp.reference?.cwe && exp.reference.cwe !== 'N/A' && (
             <span className="meta-pill cwe-ref">{exp.reference.cwe}</span>
           )}
@@ -94,10 +138,15 @@ const FindingCard = ({ event, showType = true, showFile = false }) => {
         </div>
       )}
 
-      {exp.location && (
+      {sourceInfo.where && (
         <div className="explanation-section">
           <h4><MapPin className="icon-sm" /> Where</h4>
-          <pre className="location-pre">{exp.location}</pre>
+          <div className="where-content">
+            <span className={`source-badge source-${event.event_type}`}>
+              {sourceInfo.icon} {sourceInfo.label}
+            </span>
+            <pre className="location-pre">{sourceInfo.where}</pre>
+          </div>
         </div>
       )}
 
