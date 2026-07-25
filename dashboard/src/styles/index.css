@@ -501,6 +501,21 @@ body {
 .scan-results {
   border-top: 1px solid #334155;
   padding: 1rem 1.25rem;
+  max-height: 65vh;
+  overflow-y: auto;
+}
+
+.scan-results::-webkit-scrollbar {
+  width: 5px;
+}
+
+.scan-results::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scan-results::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 3px;
 }
 
 .result-header {
