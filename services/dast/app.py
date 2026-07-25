@@ -14,7 +14,7 @@ CORS(app)
 
 PASSIVE_TIMEOUT = 10
 ACTIVE_TIMEOUT = 15
-ACTIVE_MARKER = 'SENTINEL_PROBE_8f3a2b'
+ACTIVE_MARKER = 'SPECULA_PROBE_8f3a2b'
 
 CWE_KB = {
     'missing_csp': {
@@ -266,6 +266,9 @@ def _build_explanation(check_name, target_url, detection_source,
 
 def check_security_headers(url, session):
     findings = []
+    parsed_url = urlparse(url)
+    is_localhost = parsed_url.hostname in ('localhost', '127.0.0.1', '0.0.0.0')
+
     try:
         resp = session.get(url, timeout=PASSIVE_TIMEOUT, allow_redirects=True, verify=True)
         headers = {k.lower(): v for k, v in resp.headers.items()}
@@ -280,7 +283,7 @@ def check_security_headers(url, session):
                 )
             })
 
-        if 'strict-transport-security' not in headers:
+        if not is_localhost and 'strict-transport-security' not in headers:
             findings.append({
                 'check_name': 'missing_hsts',
                 'certainty_type': 'confirmed',
@@ -463,6 +466,9 @@ def check_tls(url, session):
     parsed = urlparse(url)
     hostname = parsed.hostname
     port = parsed.port or (443 if parsed.scheme == 'https' else 80)
+
+    if hostname in ('localhost', '127.0.0.1', '0.0.0.0'):
+        return findings
 
     if parsed.scheme != 'https':
         findings.append({
@@ -698,19 +704,58 @@ def scan():
 
     session = requests.Session()
     session.headers.update({
-        'User-Agent': 'SentinelAI-DAST/1.0 (Security Scanner)',
+        'User-Agent': 'Specula-DAST/1.0 (HORUS Security Scanner)',
         'Accept': 'text/html,application/xhtml+xml,*/*'
     })
 
     findings = run_passive_checks(target_url, session)
 
     if mode == 'active':
-        common_params = ['id', 'q', 'search', 'query', 'page', 'sort', 'filter', 'type', 'user']
+        parsed_target = urlparse(target_url)
+        base_url = f"{parsed_target.scheme}://{parsed_target.netloc}"
+
+        # Build params_to_test from passive crawl: discover real paths + params
         params_to_test = []
-        parsed_base = urlparse(target_url)
-        base_url = f"{parsed_base.scheme}://{parsed_base.netloc}"
-        for param in common_params:
-            params_to_test.append({"endpoint": base_url, "param": param})
+        common_params = ['id', 'q', 'search', 'query', 'page', 'sort', 'filter', 'type', 'user',
+                         'name', 'email', 'password', 'url', 'redirect', 'file', 'path', 'token']
+
+        # Test the target URL itself
+        params_to_test.append({"endpoint": target_url, "param": common_params[0]})
+
+        # Discover paths from passive crawl (links found in page)
+        discovered_paths = set()
+        try:
+            resp = session.get(target_url, timeout=PASSIVE_TIMEOUT, allow_redirects=True)
+            import re as _re
+            hrefs = _re.findall(r'href=["\']([^"\'#]+)', resp.text)
+            for href in hrefs:
+                try:
+                    if href.startswith('/'):
+                        path = href
+                    elif href.startswith('http'):
+                        parsed_href = urlparse(href)
+                        if parsed_href.netloc == parsed_target.netloc:
+                            path = parsed_href.path
+                        else:
+                            continue
+                    else:
+                        path = '/' + href
+                    if path and path != '/' and len(path) < 100:
+                        discovered_paths.add(path)
+                except Exception:
+                    continue
+        except Exception:
+            pass
+
+        # Add common discovered paths
+        for p in ['/login', '/register', '/api', '/search', '/admin', '/profile', '/settings']:
+            discovered_paths.add(p)
+
+        # Build endpoint+param combinations
+        for path in list(discovered_paths)[:15]:  # limit to 15 paths
+            endpoint = base_url.rstrip('/') + path
+            for param in common_params[:5]:  # test top 5 params per endpoint
+                params_to_test.append({"endpoint": endpoint, "param": param})
 
         try:
             active_result = run_active_scan(target_url, params_to_test)

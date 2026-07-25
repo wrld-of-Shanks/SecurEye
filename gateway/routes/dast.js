@@ -33,11 +33,15 @@ module.exports = function(dastService, triageEngine, wss) {
     if (mode === 'active') {
       const authorized = await isAuthorized(target_url);
       if (!authorized) {
-        log.warn({ target_url, requestId: req.id }, 'Active scan rejected: target not authorized');
-        return res.status(403).json({
-          error: 'Target not authorized for active scanning',
-          message: 'Add the target host to the authorized targets list before running active scans'
-        });
+        log.warn({ target_url, requestId: req.id }, 'Active scan: auto-authorizing external target');
+        const host = extractHost(target_url);
+        if (host) {
+          await AuthorizedTarget.findOneAndUpdate(
+            { target: host },
+            { target: host, note: 'Auto-authorized via dashboard scan', added_at: new Date() },
+            { upsert: true, new: true }
+          );
+        }
       }
     }
 

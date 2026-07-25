@@ -39,7 +39,7 @@ def generate_fix_samples():
          'DB_PASSWORD = process.env.DB_PASSWORD;'),
         ('const SECRET = "mysecretkey";',
          'const SECRET = process.env.SECRET_KEY;'),
-        ('api_token = "ghp_ABCDEFGHIJKLMNOP";',
+        (         'api_token = "ghp_placeholder_token";',
          'api_token = process.env.GITHUB_TOKEN;'),
     ]
     
@@ -101,7 +101,7 @@ def generate_fix_samples():
 def main():
     samples = generate_fix_samples()
     
-    output_path = '/Users/shanks/Desktop/SentinelAI/data/code/fixes_dataset.csv'
+    output_path = '/Users/shanks/Desktop/Specula/data/code/fixes_dataset.csv'
     with open(output_path, 'w', newline='') as f:
         writer = csv.writer(f)
         writer.writerow(['vulnerable', 'fixed'])

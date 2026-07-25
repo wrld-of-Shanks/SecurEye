@@ -4,6 +4,7 @@ from flask_cors import CORS
 from models.codebert_classifier import CodeBERTClassifier
 from models.codet5_fixer import CodeT5Fixer
 from utils.explanation_kb import ExplanationKB
+from repo_scanner import start_repo_scan, get_repo_scan, get_all_repo_scans
 
 app = Flask(__name__)
 CORS(app)
@@ -37,6 +38,10 @@ def scan():
 
         classification = classifier.classify(code)
 
+        detection_source = 'rule_based'
+        if classifier.is_loaded():
+            detection_source = 'codebert_model'
+
         suggested_fix = None
         fix_confidence = None
         if classification['prediction'] != 'not_vulnerable':
@@ -48,7 +53,7 @@ def scan():
             vulnerability_type=classification['prediction'],
             code_snippet=code,
             confidence=classification['confidence'],
-            detection_source='codebert_model',
+            detection_source=detection_source,
             suggested_fix=suggested_fix
         )
 
@@ -101,6 +106,41 @@ def train():
             return jsonify({'error': 'Invalid model type'}), 400
 
         return jsonify({'status': 'training_complete', 'result': result})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/repo-scan', methods=['GET'])
+def repo_scan_list():
+    try:
+        jobs = get_all_repo_scans()
+        return jsonify(jobs)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/repo-scan', methods=['POST'])
+def repo_scan_start():
+    try:
+        data = request.get_json()
+        repo_url = data.get('repo_url', '')
+        if not repo_url:
+            return jsonify({'error': 'repo_url is required'}), 400
+
+        code_service_url = os.environ.get('CODE_SERVICE_URL', 'http://localhost:5002')
+        job_id = start_repo_scan(repo_url, code_service_url)
+        return jsonify({'job_id': job_id, 'status': 'cloning'}), 202
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/repo-scan/<job_id>', methods=['GET'])
+def repo_scan_status(job_id):
+    try:
+        result = get_repo_scan(job_id)
+        if not result:
+            return jsonify({'error': 'Job not found'}), 404
+        return jsonify(result)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

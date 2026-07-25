@@ -67,16 +67,22 @@ def train():
         return jsonify({'error': str(e)}), 500
 
 def calculate_confidence(supervised_conf, anomaly_score):
-    if anomaly_score > 0.7:
-        return anomaly_score
+    if anomaly_score > 0.9:
+        return max(supervised_conf, 0.85)
+    elif anomaly_score > 0.7:
+        return max(supervised_conf, 0.7)
+    elif anomaly_score > 0.5:
+        return supervised_conf * 0.9
     return supervised_conf
 
 def generate_explanation(prediction, confidence, unsupervised_result):
+    is_novel = unsupervised_result['is_anomaly'] and unsupervised_result['anomaly_score'] > 0.7
     return {
         'prediction': prediction,
         'confidence': confidence,
-        'is_novel': unsupervised_result['is_anomaly'],
-        'anomaly_score': unsupervised_result['anomaly_score']
+        'is_novel': is_novel,
+        'anomaly_score': unsupervised_result['anomaly_score'],
+        'override_reason': 'unsupervised_anomaly' if is_novel else None
     }
 
 if __name__ == '__main__':

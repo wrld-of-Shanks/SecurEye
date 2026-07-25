@@ -52,6 +52,7 @@ class CodeT5Fixer:
         self.tokenizer = None
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.is_trained = False
+        self.load_model()
         
     def is_loaded(self):
         return self.is_trained
@@ -174,8 +175,11 @@ class CodeT5Fixer:
         if path is None:
             path = os.path.join(os.path.dirname(__file__), 'weights', 'codet5_fixer')
         if os.path.exists(path):
-            self.model = T5ForConditionalGeneration.from_pretrained(path).to(self.device)
-            self.tokenizer = T5Tokenizer.from_pretrained(path)
-            self.is_trained = True
-            return True
+            try:
+                self.model = T5ForConditionalGeneration.from_pretrained(path).to(self.device)
+                self.tokenizer = T5Tokenizer.from_pretrained(path)
+                self.is_trained = True
+                return True
+            except Exception:
+                return False
         return False

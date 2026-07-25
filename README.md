@@ -1,4 +1,4 @@
-# SentinelAI
+# Specula
 
 A locally-trained security platform combining **network intrusion detection** and **source-code vulnerability detection** under one confidence-based triage system.
 
@@ -99,7 +99,7 @@ cd ../../dashboard && npm install
 ## Project Structure
 
 ```
-SentinelAI/
+Specula/
 ├── gateway/                  # Node.js/Express API gateway
 ├── services/
 │   ├── network/              # Flask - Network anomaly detection

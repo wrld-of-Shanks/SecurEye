@@ -42,7 +42,7 @@ function App() {
   const loadInitialData = async () => {
     try {
       const clearedAt = localStorage.getItem('sentinel_feed_cleared_at');
-      const params = clearedAt ? { since: clearedAt } : {};
+      const params = clearedAt ? { since: clearedAt } : { since: new Date().toISOString() };
       const [eventsData, statsData] = await Promise.all([
         fetchEvents(params),
         fetchStats()
@@ -72,7 +72,7 @@ function App() {
         <div className="sidebar-header">
           <h1 className="sidebar-brand">
             <span className="brand-icon">🛡️</span>
-            SentinelAI
+            Specula
           </h1>
           <p className="sidebar-subtitle">Security Monitor</p>
         </div>
@@ -82,7 +82,7 @@ function App() {
       <main className="main-content">
         <header className="topbar">
           <div className="topbar-left">
-            <h2 className="topbar-title">Security Scanner</h2>
+            <h2 className="topbar-title">HORUS (Security Scanner)</h2>
           </div>
           <div className="topbar-right">
             {feedPaused && (

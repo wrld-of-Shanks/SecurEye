@@ -30,10 +30,11 @@ const RepoScans = () => {
 
   const handleScan = async () => {
     if (!repoUrl.trim()) return;
+    const url = repoUrl.trim();
     setScanning(true);
     setError(null);
     try {
-      await scanRepo(repoUrl);
+      await scanRepo(url);
       setRepoUrl('');
       setTimeout(loadJobs, 2000);
     } catch (err) {
@@ -112,7 +113,7 @@ const RepoScans = () => {
 
       {jobDetails && (
         <div className="job-details">
-          <h3>Findings: {jobDetails.job.repo_url}</h3>
+          <h3>Findings: {jobDetails.repo_url}</h3>
           <div className="findings-by-file">
             {Object.entries(jobDetails.findings).map(([filePath, findings]) => (
               <div key={filePath} className="file-group">

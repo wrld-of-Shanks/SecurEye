@@ -5,7 +5,7 @@ const log = createChildLogger('auth');
 
 function apiKeyAuth(req, res, next) {
   const apiKey = req.headers['x-api-key'] || req.query.api_key;
-  const validKey = process.env.API_KEY || 'sentinelai-dev-key-change-in-production';
+  const validKey = process.env.API_KEY || 'specula-dev-key-change-in-production';
 
   if (!apiKey) {
     log.warn({ requestId: req.id }, 'Missing API key');

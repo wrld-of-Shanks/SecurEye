@@ -303,7 +303,8 @@ class ExplanationKB:
             'xss': ['innerHTML', 'outerHTML', 'document.write', 'insertAdjacentHTML'],
             'hardcoded_credentials': ['password', 'secret', 'key', 'token', 'api_key'],
             'command_injection': ['exec', 'system', 'popen', 'eval', 'spawn'],
-            'path_traversal': ['readFile', 'writeFile', 'open', 'path', 'fs.']
+            'path_traversal': ['readFile', 'writeFile', 'open', 'path', 'fs.'],
+            'insecure_deserialization': ['pickle', 'marshal', 'yaml.load', 'shelve', 'dill']
         }
 
         if vulnerability_type in patterns:
@@ -347,7 +348,8 @@ class ExplanationKB:
             'xss': ['innerHTML', 'outerHTML', 'document.write', 'insertAdjacentHTML'],
             'hardcoded_credentials': ['password', 'secret', 'key', 'token', 'api_key'],
             'command_injection': ['exec', 'system', 'popen', 'eval', 'spawn'],
-            'path_traversal': ['readFile', 'writeFile', 'open', 'path', 'fs.']
+            'path_traversal': ['readFile', 'writeFile', 'open', 'path', 'fs.'],
+            'insecure_deserialization': ['pickle', 'marshal', 'yaml.load', 'shelve', 'dill']
         }
 
         if vulnerability_type in patterns:

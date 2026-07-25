@@ -117,9 +117,9 @@ def generate_fix_samples():
          'DB_PASSWORD = process.env.DB_PASSWORD;'),
         ('const SECRET = "mysecretkey";',
          'const SECRET = process.env.SECRET_KEY;'),
-        ('api_token = "ghp_ABCDEFGHIJKLMNOP";',
+        (         'api_token = "ghp_placeholder_token";',
          'api_token = process.env.GITHUB_TOKEN;'),
-        ('const AWS_KEY = "AKIAIOSFODNN7EXAMPLE";',
+        (         'const AWS_KEY = "AKIA0000000000000000";',
          'const AWS_KEY = process.env.AWS_ACCESS_KEY_ID;'),
         ('password: "root",',
          'password: process.env.DB_PASSWORD,'),
@@ -129,7 +129,7 @@ def generate_fix_samples():
          'TOKEN = process.env.JWT_TOKEN;'),
         ('const secret_key = "supersecret";',
          'const secret_key = process.env.SECRET_KEY;'),
-        ('const PRIVATE_KEY = "-----BEGIN RSA PRIVATE KEY-----";',
+        (         'const PRIVATE_KEY = "-----BEGIN EXAMPLE PRIVATE KEY-----";',
          'const PRIVATE_KEY = fs.readFileSync(process.env.PRIVATE_KEY_PATH);'),
         ('db_password: "postgres",',
          'db_password: process.env.POSTGRES_PASSWORD,'),
@@ -141,7 +141,7 @@ def generate_fix_samples():
          'const smtp_pass = process.env.SMTP_PASSWORD;'),
         ('mongodb_uri: "mongodb://admin:pass@localhost",',
          'mongodb_uri: process.env.MONGODB_URI,'),
-        ('const stripe_key = "sk_live_abc123";',
+        ('const stripe_key = "stripe-test-abc123";',
          'const stripe_key = process.env.STRIPE_SECRET_KEY;'),
         ('SENDGRID_API_KEY = "SG.abc123.def456";',
          'SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;'),
@@ -149,15 +149,15 @@ def generate_fix_samples():
          'const firebase_key = process.env.FIREBASE_API_KEY;'),
         ('jwt_secret: "my_jwt_secret_key",',
          'jwt_secret: process.env.JWT_SECRET,'),
-        ('const slack_token = "xoxb-1234567890";',
+        ('const slack_token = "SLACK-BOT-TOKEN-PLACEHOLDER";',
          'const slack_token = process.env.SLACK_BOT_TOKEN;'),
-        ('const github_token = "ghp_ABCDEF123456";',
+        (         'const github_token = "ghp_placeholder_token";',
          'const github_token = process.env.GITHUB_TOKEN;'),
         ('DB_USER: "root",',
          'DB_USER: process.env.DB_USER,'),
         ('const paypal_client_id = "AXq1234567890";',
          'const paypal_client_id = process.env.PAYPAL_CLIENT_ID;'),
-        ('const openai_key = "sk-proj-abc123";',
+        (         'const openai_key = "sk-placeholder-key";',
          'const openai_key = process.env.OPENAI_API_KEY;'),
     ]
     
@@ -294,7 +294,7 @@ def generate_fix_samples():
 def main():
     samples = generate_fix_samples()
     
-    output_path = '/Users/shanks/Desktop/SentinelAI/data/code/fixes_dataset.csv'
+    output_path = '/Users/shanks/Desktop/Specula/data/code/fixes_dataset.csv'
     with open(output_path, 'w', newline='') as f:
         writer = csv.writer(f)
         writer.writerow(['vulnerable', 'fixed'])

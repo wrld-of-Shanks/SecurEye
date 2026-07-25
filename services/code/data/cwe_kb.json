@@ -165,5 +165,27 @@
     "examples": [],
     "fix_patterns": [],
     "detection_patterns": []
+  },
+  "insecure_deserialization": {
+    "cwe": "CWE-502",
+    "name": "Insecure Deserialization",
+    "description": "Deserializing untrusted data can allow an attacker to execute arbitrary code.",
+    "severity": "critical",
+    "owasp": "A08:2021 - Software and Data Integrity Failures",
+    "remediation": [
+      "Never deserialize untrusted data with pickle",
+      "Use safe formats like JSON",
+      "If pickle is required, restrict deserializable classes",
+      "Use yaml.safe_load() instead of yaml.load()"
+    ],
+    "examples": [
+      "pickle.loads(user_data)",
+      "yaml.load(raw_config)"
+    ],
+    "fix_patterns": [
+      "Use JSON for serialization",
+      "Use yaml.safe_load()",
+      "Implement restricted unpickler"
+    ]
   }
 }

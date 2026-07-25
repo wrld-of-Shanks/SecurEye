@@ -96,27 +96,27 @@ def generate_hardcoded_credentials_samples(n=800):
         'const API_KEY = "sk-1234567890abcdef";',
         'DB_PASSWORD = "secret_pass_123";',
         'const SECRET = "mysecretkey";',
-        'api_token = "ghp_ABCDEFGHIJKLMNOP";',
-        'const AWS_KEY = "AKIAIOSFODNN7EXAMPLE";',
+        'api_token = "ghp_placeholder_token";',
+        'const AWS_KEY = "AKIA0000000000000000";',
         'password: "root",',
         'const dbPass = "mysql_password";',
         'TOKEN = "eyJhbGciOiJIUzI1NiJ9";',
         'const secret_key = "supersecret";',
-        'const PRIVATE_KEY = "-----BEGIN RSA PRIVATE KEY-----";',
+        'const PRIVATE_KEY = "-----BEGIN EXAMPLE PRIVATE KEY-----";',
         'db_password: "postgres",',
         'const encryption_key = "0123456789abcdef";',
         'REDIS_PASSWORD = "redis_pass";',
         'const smtp_pass = "email_password";',
         'mongodb_uri: "mongodb://admin:pass@localhost",',
-        'const stripe_key = "sk_live_abc123";',
+        'const stripe_key = "stripe-test-abc123";',
         'SENDGRID_API_KEY = "SG.abc123.def456";',
         'const firebase_key = "AIzaSyA1234567890";',
         'jwt_secret: "my_jwt_secret_key",',
-        'const slack_token = "xoxb-1234567890";',
-        'const github_token = "ghp_ABCDEF123456";',
+        'const slack_token = "SLACK-BOT-TOKEN-PLACEHOLDER";',
+        'const github_token = "ghp_placeholder_token";',
         'DB_USER: "root",',
         'const paypal_client_id = "AXq1234567890";',
-        'const openai_key = "sk-proj-abc123";',
+        'const openai_key = "sk-placeholder-key";',
         'consul_token = "consul_secret_token";',
         'const vault_token = "s.abc123def456";',
         'etcd_password = "etcd_secret";',
@@ -378,7 +378,7 @@ def main():
     
     random.shuffle(all_samples)
     
-    output_path = '/Users/shanks/Desktop/SentinelAI/data/code/cve_dataset.csv'
+    output_path = '/Users/shanks/Desktop/Specula/data/code/cve_dataset.csv'
     with open(output_path, 'w', newline='') as f:
         writer = csv.writer(f)
         writer.writerow(['code', 'label'])

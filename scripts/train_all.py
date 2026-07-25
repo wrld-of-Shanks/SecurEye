@@ -25,7 +25,7 @@ def main():
     scripts_dir = os.path.dirname(os.path.abspath(__file__))
     
     print("=" * 70)
-    print("  SENTINELAI - COMPLETE MODEL TRAINING PIPELINE")
+    print("  SPECULA - COMPLETE MODEL TRAINING PIPELINE")
     print("=" * 70)
     
     training_scripts = [

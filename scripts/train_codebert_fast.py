@@ -57,7 +57,7 @@ def train_codebert_fast():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
     
-    csv_path = '/Users/shanks/Desktop/SentinelAI/data/code/cve_dataset.csv'
+    csv_path = '/Users/shanks/Desktop/Specula/data/code/cve_dataset.csv'
     df = pd.read_csv(csv_path)
     
     print(f"Dataset size: {len(df)}")
@@ -167,7 +167,7 @@ def train_codebert_fast():
         zero_division=0
     ))
     
-    save_path = '/Users/shanks/Desktop/SentinelAI/services/code/models/weights/codebert_classifier'
+    save_path = '/Users/shanks/Desktop/Specula/services/code/models/weights/codebert_classifier'
     os.makedirs(save_path, exist_ok=True)
     model.save_pretrained(save_path)
     tokenizer.save_pretrained(save_path)

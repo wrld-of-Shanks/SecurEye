@@ -58,9 +58,21 @@ function chunkCode(code, chunkSize = CHUNK_SIZE, overlap = CHUNK_OVERLAP) {
 }
 
 async function cloneRepo(repoUrl, destDir) {
-  await execFileAsync('git', ['clone', '--depth', '1', '--single-branch', repoUrl, destDir], {
+  const authUrl = repoUrl.replace('https://github.com/', `https://${getGithubToken()}@github.com/`);
+  await execFileAsync('git', ['clone', '--depth', '1', '--single-branch', authUrl, destDir], {
     timeout: 60000
   });
+}
+
+function getGithubToken() {
+  try {
+    const { execSync } = require('child_process');
+    const token = execSync('security find-generic-password -s "github.com" -w 2>/dev/null || echo ""', { encoding: 'utf-8' }).trim();
+    if (token) return `oauth2:${token}`;
+  } catch {}
+  const envToken = process.env.GITHUB_TOKEN;
+  if (envToken) return `oauth2:${envToken}`;
+  return 'x-access-token:';
 }
 
 function collectSourceFiles(dir) {

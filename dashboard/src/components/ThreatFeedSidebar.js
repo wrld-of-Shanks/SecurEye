@@ -27,12 +27,6 @@ const ThreatFeedSidebar = ({ events, onClear, paused }) => {
         )}
       </div>
 
-      {events.length > 0 && (
-        <div className="sidebar-feed-count">
-          {events.length} event{events.length !== 1 ? 's' : ''}
-        </div>
-      )}
-
       <div className="sidebar-feed-list">
         {events.length === 0 && !paused && (
           <div className="sidebar-feed-empty">

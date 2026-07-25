@@ -13,7 +13,7 @@ def main():
     hostname = sys.argv[1]
     note = sys.argv[2] if len(sys.argv) > 2 else ""
 
-    db = MongoClient("mongodb://localhost:27017")["sentinelai"]
+    db = MongoClient("mongodb://localhost:27017")["specula"]
     db["authorized_targets"].update_one(
         {"target": hostname},
         {"$set": {"target": hostname, "note": note, "added_at": datetime.datetime.utcnow()}},

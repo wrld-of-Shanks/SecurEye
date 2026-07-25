@@ -12,7 +12,7 @@ const { defaultLimiter } = require('../shared/middleware/rateLimiter');
 const eventRoutes = require('./routes/events');
 const networkRoutes = require('./routes/network');
 const codeRoutes = require('./routes/code');
-const scanRepoRoutes = require('./routes/scanRepo');
+const repoScanRoutes = require('./routes/repoScan');
 const dastRoutes = require('./routes/dast');
 const { TriageEngine } = require('../shared/triage/engine');
 
@@ -23,7 +23,7 @@ const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
 const PORT = process.env.GATEWAY_PORT || 3000;
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/sentinelai';
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/specula';
 const NETWORK_SERVICE = process.env.NETWORK_SERVICE || 'http://localhost:5001';
 const CODE_SERVICE = process.env.CODE_SERVICE || 'http://localhost:5002';
 const DAST_SERVICE = process.env.DAST_SERVICE || 'http://localhost:5003';
@@ -48,7 +48,7 @@ mongoose.connect(MONGO_URI)
 app.use('/api/events', apiKeyAuth, eventRoutes);
 app.use('/api/network', apiKeyAuth, networkRoutes(NETWORK_SERVICE, triageEngine, wss));
 app.use('/api/code', apiKeyAuth, codeRoutes(CODE_SERVICE, triageEngine, wss));
-app.use('/api/code', apiKeyAuth, scanRepoRoutes(CODE_SERVICE, triageEngine, wss));
+app.use('/api/code', apiKeyAuth, repoScanRoutes(CODE_SERVICE, triageEngine, wss));
 app.use('/api/dast', apiKeyAuth, dastRoutes(DAST_SERVICE, triageEngine, wss));
 
 wss.on('connection', (ws, req) => {

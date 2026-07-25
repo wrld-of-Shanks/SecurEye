@@ -14,11 +14,11 @@ import requests
 from urllib.parse import urlparse
 from pymongo import MongoClient
 
-db = MongoClient("mongodb://localhost:27017")["sentinelai"]
+db = MongoClient("mongodb://localhost:27017")["specula"]
 authorized_targets = db["authorized_targets"]
 
 REQUEST_TIMEOUT = 8
-USER_AGENT = "SentinelAI-DAST/1.0 (authorized-scan)"
+USER_AGENT = "Specula-DAST/1.0 (authorized-scan)"
 
 
 class NotAuthorizedError(Exception):
@@ -93,7 +93,7 @@ def check_sqli(target_url: str, endpoint: str, param_name: str):
 # XSS reflection check (benign marker, no real script execution)
 # ---------------------------------------------------------------------------
 
-XSS_MARKER = "sentinelai_xss_check_9f3a"
+XSS_MARKER = "specula_xss_check_9f3a"
 
 def check_xss(target_url: str, endpoint: str, param_name: str):
     require_authorization(target_url)

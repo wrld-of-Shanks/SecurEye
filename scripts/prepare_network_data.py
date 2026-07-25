@@ -31,10 +31,10 @@ def convert_to_csv(input_path, output_path):
 
 if __name__ == '__main__':
     convert_to_csv(
-        '/Users/shanks/Desktop/SentinelAI/data/network/KDDTrain+.txt',
-        '/Users/shanks/Desktop/SentinelAI/data/network/KDDTrain+.csv'
+        '/Users/shanks/Desktop/Specula/data/network/KDDTrain+.txt',
+        '/Users/shanks/Desktop/Specula/data/network/KDDTrain+.csv'
     )
     convert_to_csv(
-        '/Users/shanks/Desktop/SentinelAI/data/network/KDDTest+.txt',
-        '/Users/shanks/Desktop/SentinelAI/data/network/KDDTest+.csv'
+        '/Users/shanks/Desktop/Specula/data/network/KDDTest+.txt',
+        '/Users/shanks/Desktop/Specula/data/network/KDDTest+.csv'
     )

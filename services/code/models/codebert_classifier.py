@@ -63,6 +63,7 @@ class CodeBERTClassifier:
         self.tokenizer = None
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.is_trained = False
+        self.load_model()
         
     def is_loaded(self):
         return self.is_trained

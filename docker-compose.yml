@@ -20,11 +20,11 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - MONGO_URI=mongodb://mongodb:27017/sentinelai
+      - MONGO_URI=mongodb://mongodb:27017/specula
       - NETWORK_SERVICE=http://network:5001
       - CODE_SERVICE=http://code:5002
       - DAST_SERVICE=http://dast:5003
-      - API_KEY=${API_KEY:-sentinelai-dev-key-change-in-production}
+      - API_KEY=${API_KEY:-specula-dev-key-change-in-production}
       - CORS_ORIGINS=http://localhost:3001
     depends_on:
       mongodb:

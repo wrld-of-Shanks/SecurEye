@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# SentinelAI Startup Script
+# Specula Startup Script
 # Starts all services in the correct order
 
 set -e
 
-echo "🛡️  Starting SentinelAI Platform..."
+echo "🛡️  Starting Specula Platform..."
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'

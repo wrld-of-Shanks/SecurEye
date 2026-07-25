@@ -2,6 +2,7 @@ import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'services', 'code'))
 
+import time
 import pandas as pd
 import numpy as np
 import torch
@@ -63,10 +64,10 @@ def train_codebert():
     print("TRAINING CODEBERT CLASSIFIER")
     print("=" * 60)
     
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('mps' if torch.backends.mps.is_available() else ('cuda' if torch.cuda.is_available() else 'cpu'))
     print(f"Using device: {device}")
     
-    csv_path = '/Users/shanks/Desktop/SentinelAI/data/code/cve_dataset.csv'
+    csv_path = '/Users/shanks/Desktop/Specula/data/code/cve_dataset.csv'
     df = pd.read_csv(csv_path)
     
     print(f"Dataset size: {len(df)}")
@@ -95,10 +96,10 @@ def train_codebert():
     train_dataset = CodeDataset(train_codes, train_labels, tokenizer)
     val_dataset = CodeDataset(val_codes, val_labels, tokenizer)
     
-    train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=16, shuffle=False)
+    train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=8, shuffle=False)
     
-    optimizer = torch.optim.AdamW(model.parameters(), lr=2e-5)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-5, weight_decay=0.01)
     
     class_counts = np.bincount(train_labels)
     class_weights = torch.FloatTensor(
@@ -107,9 +108,14 @@ def train_codebert():
     criterion = nn.CrossEntropyLoss(weight=class_weights)
     
     epochs = 3
-    print(f"\nTraining for {epochs} epochs...")
+    best_val_acc = 0
+    patience = 2
+    patience_counter = 0
+    best_model_state = None
+    print(f"\nTraining for up to {epochs} epochs with early stopping (patience={patience})...")
     
     for epoch in range(epochs):
+        epoch_start = time.time()
         model.train()
         total_loss = 0
         correct = 0
@@ -141,7 +147,8 @@ def train_codebert():
         
         avg_loss = total_loss / len(train_loader)
         accuracy = correct / total * 100
-        print(f"\nEpoch {epoch+1}/{epochs} - Avg Loss: {avg_loss:.4f}, Train Accuracy: {accuracy:.1f}%")
+        epoch_time = time.time() - epoch_start
+        print(f"\nEpoch {epoch+1}/{epochs} - Avg Loss: {avg_loss:.4f}, Train Accuracy: {accuracy:.1f}%, Time: {epoch_time:.0f}s", flush=True)
         
         model.eval()
         val_correct = 0
@@ -169,6 +176,32 @@ def train_codebert():
         
         val_accuracy = val_correct / val_total * 100
         print(f"Val Accuracy: {val_accuracy:.1f}%")
+        
+        if val_accuracy > best_val_acc:
+            best_val_acc = val_accuracy
+            patience_counter = 0
+            best_model_state = {k: v.clone() for k, v in model.state_dict().items()}
+            print(f"  -> New best: {val_accuracy:.1f}%")
+        else:
+            patience_counter += 1
+            print(f"  -> No improvement ({patience_counter}/{patience})")
+            if patience_counter >= patience:
+                print(f"\nEarly stopping at epoch {epoch+1}")
+                model.load_state_dict(best_model_state)
+                break
+    
+    model.eval()
+    all_preds = []
+    all_labels = []
+    with torch.no_grad():
+        for batch in val_loader:
+            input_ids = batch['input_ids'].to(device)
+            attention_mask = batch['attention_mask'].to(device)
+            labels = batch['labels'].to(device)
+            outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+            _, predicted = torch.max(outputs.logits, 1)
+            all_preds.extend(predicted.cpu().numpy())
+            all_labels.extend(labels.cpu().numpy())
     
     print(f"\n{'='*60}")
     print("CODEBERT EVALUATION RESULTS")
@@ -180,7 +213,7 @@ def train_codebert():
         zero_division=0
     ))
     
-    save_path = '/Users/shanks/Desktop/SentinelAI/services/code/models/weights/codebert_classifier'
+    save_path = '/Users/shanks/Desktop/Specula/services/code/models/weights/codebert_classifier'
     os.makedirs(save_path, exist_ok=True)
     model.save_pretrained(save_path)
     tokenizer.save_pretrained(save_path)
