@@ -10,10 +10,10 @@ from sklearn.metrics import (
     precision_score, recall_score, f1_score
 )
 
-BASE = '/Users/shanks/Desktop/Specula'
-XGB_PATH = os.path.join(BASE, 'services/network/models/weights/xgboost_model.pkl')
-IF_PATH = os.path.join(BASE, 'services/network/models/weights/isolation_forest.pkl')
-TEST_PATH = os.path.join(BASE, 'data/network/KDDTest+.csv')
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+XGB_PATH = os.path.join(BASE_DIR, 'services', 'network', 'models', 'weights', 'xgboost_model.pkl')
+IF_PATH = os.path.join(BASE_DIR, 'services', 'network', 'models', 'weights', 'isolation_forest.pkl')
+TEST_PATH = os.path.join(BASE_DIR, 'data', 'network', 'KDDTest+.csv')
 
 CATEGORICAL_COLS = ['protocol_type', 'service', 'flag']
 

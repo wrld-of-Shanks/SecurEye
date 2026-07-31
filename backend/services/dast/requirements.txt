@@ -5,3 +5,4 @@ urllib3==2.1.0
 pyOpenSSL==23.3.0
 service-identity==23.1.0
 gunicorn==21.2.0
+pymongo==4.6.1

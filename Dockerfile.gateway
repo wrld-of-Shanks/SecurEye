@@ -3,12 +3,11 @@ FROM node:20-alpine
 WORKDIR /app
 
 COPY backend/shared/ /app/shared/
-COPY backend/gateway/package*.json /app/gateway/
-WORKDIR /app/gateway
+COPY backend/gateway/package*.json /app/
 RUN npm install
 
 COPY backend/gateway/ /app/gateway/
 
 EXPOSE 3000
 
-CMD ["node", "server.js"]
+CMD ["node", "gateway/server.js"]

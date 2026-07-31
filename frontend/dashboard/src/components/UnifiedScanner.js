@@ -27,7 +27,7 @@ const isLocalhost = (url) => {
 const TYPE_CONFIG = {
   code: { icon: Code, label: 'Code', color: '#3b82f6', hint: 'Paste JavaScript, Python, Java, etc.' },
   repo: { icon: GitBranch, label: 'Repository', color: '#f59e0b', hint: 'GitHub repository URL' },
-  dast: { icon: Globe, label: 'Website', color: '#ef4444', hint: 'Live website URL to scan' },
+  dast: { icon: Globe, label: 'Website', color: '#f97316', hint: 'Live website URL to scan' },
 };
 
 const UnifiedScanner = ({ onResumeFeed }) => {

@@ -1,113 +1,115 @@
 {
-  "timestamp": "2026-07-31T19:18:16.336118",
+  "timestamp": "2026-07-31T22:34:15.157295",
   "targets": [
     "dvwa",
     "juice_shop",
-    "webgoat"
+    "webgoat",
+    "bwapp",
+    "mutillidae"
   ],
+  "gt_total": 76,
   "summary": {
     "horus": {
-      "tp": 12,
-      "fp": 3,
-      "fn": 18,
-      "precision": 0.8,
-      "recall": 0.4,
-      "f1": 0.5333
+      "tp": 23,
+      "fp": 5,
+      "fn": 53,
+      "precision": 0.8214,
+      "recall": 0.3026,
+      "f1": 0.4423
     },
     "zap": {
-      "tp": 0,
-      "fp": 0,
-      "fn": 0,
-      "precision": 0,
-      "recall": 0,
-      "f1": 0
+      "tp": 21,
+      "fp": 43,
+      "fn": 55,
+      "precision": 0.3281,
+      "recall": 0.2763,
+      "f1": 0.3
     }
   },
   "per_target": {
-    "dvwa": {
-      "target": "DVWA (Damn Vulnerable Web Application)",
-      "tp": 5,
-      "fp": 1,
-      "fn": 6,
-      "precision": 0.8333,
-      "recall": 0.4545,
-      "f1": 0.5882,
-      "gt_count": 11,
-      "tool_finding_count": 6,
-      "tp_checks": [
-        "missing_csp",
-        "missing_hsts",
-        "missing_xfo",
-        "server_banner_disclosure",
-        "weak_tls"
-      ],
-      "fp_checks": [
-        "exposed_metadata"
-      ],
-      "fn_checks": [
-        "error_disclosure",
-        "insecure_cookies",
-        "sqli_indicator",
-        "xss_reflection"
-      ],
-      "tool": "HORUS DAST",
-      "scan_time_seconds": 0.2
+    "horus": {
+      "dvwa": {
+        "tp": 5,
+        "fp": 1,
+        "fn": 9,
+        "precision": 0.8333,
+        "recall": 0.3571,
+        "f1": 0.5
+      },
+      "juice_shop": {
+        "tp": 3,
+        "fp": 1,
+        "fn": 12,
+        "precision": 0.75,
+        "recall": 0.2,
+        "f1": 0.3158
+      },
+      "webgoat": {
+        "tp": 4,
+        "fp": 1,
+        "fn": 11,
+        "precision": 0.8,
+        "recall": 0.2667,
+        "f1": 0.4
+      },
+      "bwapp": {
+        "tp": 5,
+        "fp": 1,
+        "fn": 11,
+        "precision": 0.8333,
+        "recall": 0.3125,
+        "f1": 0.4545
+      },
+      "mutillidae": {
+        "tp": 6,
+        "fp": 1,
+        "fn": 10,
+        "precision": 0.8571,
+        "recall": 0.375,
+        "f1": 0.5217
+      }
     },
-    "juice_shop": {
-      "target": "OWASP Juice Shop",
-      "tp": 3,
-      "fp": 1,
-      "fn": 6,
-      "precision": 0.75,
-      "recall": 0.3333,
-      "f1": 0.4615,
-      "gt_count": 9,
-      "tool_finding_count": 4,
-      "tp_checks": [
-        "missing_csp",
-        "missing_hsts",
-        "weak_tls"
-      ],
-      "fp_checks": [
-        "exposed_metadata"
-      ],
-      "fn_checks": [
-        "error_disclosure",
-        "exposed_path",
-        "idor_indicator",
-        "sqli_indicator",
-        "xss_reflection"
-      ],
-      "tool": "HORUS DAST",
-      "scan_time_seconds": 0.7
-    },
-    "webgoat": {
-      "target": "OWASP WebGoat",
-      "tp": 4,
-      "fp": 1,
-      "fn": 6,
-      "precision": 0.8,
-      "recall": 0.4,
-      "f1": 0.5333,
-      "gt_count": 10,
-      "tool_finding_count": 5,
-      "tp_checks": [
-        "missing_csp",
-        "missing_hsts",
-        "missing_xfo",
-        "weak_tls"
-      ],
-      "fp_checks": [
-        "open_redirect"
-      ],
-      "fn_checks": [
-        "error_disclosure",
-        "idor_indicator",
-        "sqli_indicator",
-        "xss_reflection"
-      ],
-      "tool": "HORUS DAST",
-      "scan_time_seconds": 0.2
+    "zap": {
+      "dvwa": {
+        "tp": 4,
+        "fp": 6,
+        "fn": 10,
+        "precision": 0.4,
+        "recall": 0.2857,
+        "f1": 0.3333
+      },
+      "juice_shop": {
+        "tp": 1,
+        "fp": 3,
+        "fn": 14,
+        "precision": 0.25,
+        "recall": 0.0667,
+        "f1": 0.1053
+      },
+      "webgoat": {
+        "tp": 6,
+        "fp": 8,
+        "fn": 9,
+        "precision": 0.4286,
+        "recall": 0.4,
+        "f1": 0.4138
+      },
+      "bwapp": {
+        "tp": 5,
+        "fp": 7,
+        "fn": 11,
+        "precision": 0.4167,
+        "recall": 0.3125,
+        "f1": 0.3571
+      },
+      "mutillidae": {
+        "tp": 5,
+        "fp": 19,
+        "fn": 11,
+        "precision": 0.2083,
+        "recall": 0.3125,
+        "f1": 0.25
+      }
     }
   }
 }

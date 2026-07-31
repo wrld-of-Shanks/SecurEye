@@ -53,7 +53,15 @@ module.exports = function(dastService, triageEngine, wss) {
         signal: AbortSignal.timeout(120000)
       });
 
-      const result = await response.json();
+      const contentType = response.headers.get('content-type') || '';
+      let result;
+      if (contentType.includes('application/json')) {
+        result = await response.json();
+      } else {
+        const text = await response.text();
+        log.error({ status: response.status, contentType, bodySnippet: text.slice(0, 200), requestId: req.id }, 'DAST service returned non-JSON');
+        return res.status(502).json({ error: 'DAST service unavailable' });
+      }
 
       if (!response.ok) {
         log.error({ status: response.status, requestId: req.id }, 'DAST service error');

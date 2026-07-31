@@ -12,7 +12,8 @@ function App() {
   const [feedPaused, setFeedPaused] = useState(false);
   const pausedRef = useRef(false);
 
-  const ws = useWebSocket(process.env.REACT_APP_WS_URL || 'ws://localhost:3000/ws');
+  const wsUrl = process.env.REACT_APP_WS_URL || `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`;
+  const ws = useWebSocket(wsUrl);
 
   useEffect(() => {
     loadInitialData();
@@ -67,11 +68,12 @@ function App() {
   };
 
   return (
+    <>
+    <div className="scanlines" />
     <div className="app-layout">
       <aside className="sidebar">
         <div className="sidebar-header">
           <h1 className="sidebar-brand">
-            <span className="brand-icon">🛡️</span>
             Specula
           </h1>
           <p className="sidebar-subtitle">Security Monitor</p>
@@ -108,6 +110,7 @@ function App() {
         )}
       </main>
     </div>
+    </>
   );
 }
 

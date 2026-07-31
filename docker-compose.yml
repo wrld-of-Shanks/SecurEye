@@ -53,6 +53,11 @@ services:
       dockerfile: Dockerfile.dast
     ports:
       - "5003:5003"
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017
+    depends_on:
+      mongodb:
+        condition: service_healthy
     restart: unless-stopped
 
   dashboard:
@@ -63,6 +68,22 @@ services:
       - "3001:3001"
     depends_on:
       - gateway
+    restart: unless-stopped
+
+  # ─── Evaluation targets (DAST benchmark) ─────────────────────────────────
+  # Deliberately-vulnerable apps used by scripts/evaluate_dast.py. Ports avoid
+  # collisions: DVWA 4280, Juice Shop 3999, WebGoat 8082/8083, bWAPP 4281,
+  # Mutillidae 4282.
+  bwapp:
+    image: raesene/bwapp:latest
+    ports:
+      - "4281:80"
+    restart: unless-stopped
+
+  mutillidae:
+    image: citizenstig/nowasp:latest
+    ports:
+      - "4282:80"
     restart: unless-stopped
 
 volumes:

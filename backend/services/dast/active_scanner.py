@@ -9,12 +9,15 @@ Authorization is enforced HERE, not just at the gateway, so this module
 can't be called against an unauthorized target even by mistake.
 """
 
+import os
 import time
 import requests
 from urllib.parse import urlparse
 from pymongo import MongoClient
 
-db = MongoClient("mongodb://localhost:27017")["specula"]
+_mongo_uri = os.environ.get("MONGO_URI", "mongodb://localhost:27017")
+_client = MongoClient(_mongo_uri)
+db = _client["specula"]
 authorized_targets = db["authorized_targets"]
 
 REQUEST_TIMEOUT = 8

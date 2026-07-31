@@ -29,6 +29,8 @@ const CODE_SERVICE = process.env.CODE_SERVICE || 'http://localhost:5002';
 const DAST_SERVICE = process.env.DAST_SERVICE || 'http://localhost:5003';
 const CORS_ORIGINS = (process.env.CORS_ORIGINS || 'http://localhost:3001').split(',');
 
+const triageEngine = new TriageEngine();
+
 app.use(requestId);
 app.use(cors({
   origin: CORS_ORIGINS,
@@ -38,12 +40,6 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '1mb' }));
 app.use(defaultLimiter);
-
-const triageEngine = new TriageEngine();
-
-mongoose.connect(MONGO_URI)
-  .then(() => log.info('Connected to MongoDB'))
-  .catch(err => log.error({ err }, 'MongoDB connection error'));
 
 app.use('/api/events', apiKeyAuth, eventRoutes);
 app.use('/api/network', apiKeyAuth, networkRoutes(NETWORK_SERVICE, triageEngine, wss));
@@ -105,8 +101,20 @@ app.use((err, req, res, _next) => {
 
 app.set('wss', wss);
 
-server.listen(PORT, () => {
-  log.info({ port: PORT }, 'Gateway running');
-});
+async function start() {
+  try {
+    await mongoose.connect(MONGO_URI);
+    log.info('Connected to MongoDB');
+  } catch (err) {
+    log.error({ err }, 'MongoDB connection error');
+    process.exit(1);
+  }
+
+  server.listen(PORT, () => {
+    log.info({ port: PORT }, 'Gateway running');
+  });
+}
+
+start();
 
 module.exports = { app, server, wss };

@@ -37,6 +37,8 @@ HORUS_BASE_URL = os.environ.get("HORUS_BASE_URL", "http://localhost:5003")
 
 # Port overrides for target apps (defaults match the original Jul 26 eval run).
 WEBGOAT_PORT = os.environ.get("WEBGOAT_PORT", "8082")
+BWAPP_PORT = os.environ.get("BWAPP_PORT", "4281")
+MUTILLIDAE_PORT = os.environ.get("MUTILLIDAE_PORT", "4282")
 
 # Used by the fail-loud startup probe to verify the DAST service can actually
 # resolve/reach host.docker.internal targets before a run starts.
@@ -54,18 +56,22 @@ GROUND_TRUTH = {
         "description": "Deliberately vulnerable PHP/MySQL web app with known vulns at every level.",
         "vulnerabilities": [
             # --- Verified via raw HTTP headers (curl -sI) ---
-            {"id": "gt_dvwa_01", "check_type": "missing_csp", "category": "header", "description": "No Content-Security-Policy header (confirmed: header absent in response)"},
-            {"id": "gt_dvwa_02", "check_type": "missing_xfo", "category": "header", "description": "No X-Frame-Options header (confirmed: header absent in response)"},
-            {"id": "gt_dvwa_03", "check_type": "insecure_cookies", "category": "header", "description": "PHPSESSID cookie lacks HttpOnly/Secure/SameSite flags (confirmed: Set-Cookie: PHPSESSID=...; path=/)"},
-            {"id": "gt_dvwa_04", "check_type": "server_banner_disclosure", "category": "header", "description": "Apache/2.4.25 (Debian) version leaked via Server header (confirmed: Server: Apache/2.4.25 (Debian))"},
-            {"id": "gt_dvwa_05", "check_type": "missing_hsts", "category": "header", "description": "No Strict-Transport-Security header (confirmed: header absent in response)"},
-            {"id": "gt_dvwa_06", "check_type": "weak_tls", "category": "config", "description": "HTTP-only deployment, no TLS (confirmed: HTTPS curl returns empty response)"},
+            {"id": "gt_dvwa_01", "check_type": "missing_csp", "category": "header", "endpoint": "/", "description": "No Content-Security-Policy header (confirmed: header absent in response)"},
+            {"id": "gt_dvwa_02", "check_type": "missing_xfo", "category": "header", "endpoint": "/", "description": "No X-Frame-Options header (confirmed: header absent in response)"},
+            {"id": "gt_dvwa_03", "check_type": "insecure_cookies", "category": "header", "endpoint": "/", "description": "PHPSESSID cookie lacks HttpOnly/Secure/SameSite flags (confirmed: Set-Cookie: PHPSESSID=...; path=/)"},
+            {"id": "gt_dvwa_04", "check_type": "server_banner_disclosure", "category": "header", "endpoint": "/", "description": "Apache/2.4.25 (Debian) version leaked via Server header (confirmed: Server: Apache/2.4.25 (Debian))"},
+            {"id": "gt_dvwa_05", "check_type": "missing_hsts", "category": "header", "endpoint": "/", "description": "No Strict-Transport-Security header (confirmed: header absent in response)"},
+            {"id": "gt_dvwa_06", "check_type": "weak_tls", "category": "config", "endpoint": "/", "description": "HTTP-only deployment, no TLS (confirmed: HTTPS curl returns empty response)"},
             # --- Based on documented CVEs / public knowledge (not verifiable from headers alone) ---
-            {"id": "gt_dvwa_07", "check_type": "sqli_indicator", "category": "injection", "description": "SQL Injection on /vulnerabilities/sqli/ id parameter (documented, requires authentication to test)"},
-            {"id": "gt_dvwa_08", "check_type": "sqli_indicator", "category": "injection", "description": "SQL Injection on /vulnerabilities/sqli_blind/ id parameter (documented, requires authentication to test)"},
-            {"id": "gt_dvwa_09", "check_type": "xss_reflection", "category": "injection", "description": "Reflected XSS on /vulnerabilities/xss_r/ name parameter (documented, requires authentication to test)"},
-            {"id": "gt_dvwa_10", "check_type": "xss_reflection", "category": "injection", "description": "Stored XSS on /vulnerabilities/xss_s/ name/message (documented, requires authentication to test)"},
-            {"id": "gt_dvwa_11", "check_type": "error_disclosure", "category": "info", "description": "PHP error messages on malformed input (documented)"},
+            {"id": "gt_dvwa_07", "check_type": "sqli_indicator", "category": "injection", "endpoint": "/vulnerabilities/sqli/", "description": "SQL Injection on /vulnerabilities/sqli/ id parameter (documented, requires authentication to test)"},
+            {"id": "gt_dvwa_08", "check_type": "sqli_indicator", "category": "injection", "endpoint": "/vulnerabilities/sqli_blind/", "description": "SQL Injection on /vulnerabilities/sqli_blind/ id parameter (documented, requires authentication to test)"},
+            {"id": "gt_dvwa_09", "check_type": "xss_reflection", "category": "injection", "endpoint": "/vulnerabilities/xss_r/", "description": "Reflected XSS on /vulnerabilities/xss_r/ name parameter (documented, requires authentication to test)"},
+            {"id": "gt_dvwa_10", "check_type": "xss_reflection", "category": "injection", "endpoint": "/vulnerabilities/xss_s/", "description": "Stored XSS on /vulnerabilities/xss_s/ name/message (documented, requires authentication to test)"},
+            {"id": "gt_dvwa_11", "check_type": "error_disclosure", "category": "info", "endpoint": "/vulnerabilities/", "description": "PHP error messages on malformed input (documented)"},
+            # --- Added for the 5-target corpus (2026-07-31); all interaction-based ---
+            {"id": "gt_dvwa_12", "check_type": "sqli_indicator", "category": "injection", "endpoint": "/login.php", "description": "SQL Injection (login bypass) on /login.php user parameter (documented)", "verification": "documented"},
+            {"id": "gt_dvwa_13", "check_type": "xss_reflection", "category": "injection", "endpoint": "/vulnerabilities/xss_d/", "description": "DOM-based XSS on /vulnerabilities/xss_d/ (documented, requires authentication to test)", "verification": "documented"},
+            {"id": "gt_dvwa_14", "check_type": "error_disclosure", "category": "info", "endpoint": "/vulnerabilities/exec/", "description": "PHP error disclosure on malformed input on /vulnerabilities/exec/ (documented, requires authentication to test)", "verification": "documented"},
         ]
     },
     "juice_shop": {
@@ -74,16 +80,23 @@ GROUND_TRUTH = {
         "description": "Modern Node.js/Angular deliberately vulnerable web app with 100+ challenges.",
         "vulnerabilities": [
             # --- Verified via raw HTTP headers (curl -sI) ---
-            {"id": "gt_js_01", "check_type": "missing_csp", "category": "header", "description": "No Content-Security-Policy header (confirmed: header absent in response)"},
-            {"id": "gt_js_02", "check_type": "missing_hsts", "category": "header", "description": "No Strict-Transport-Security header (confirmed: header absent in response)"},
-            {"id": "gt_js_03", "check_type": "weak_tls", "category": "config", "description": "HTTP-only deployment, no TLS (confirmed: HTTPS curl returns empty response)"},
-            {"id": "gt_js_04", "check_type": "exposed_path", "category": "info", "description": "/robots.txt reveals /ftp directory (confirmed: curl http://localhost:3999/robots.txt returns Disallow: /ftp)"},
+            {"id": "gt_js_01", "check_type": "missing_csp", "category": "header", "endpoint": "/", "description": "No Content-Security-Policy header (confirmed: header absent in response)"},
+            {"id": "gt_js_02", "check_type": "missing_hsts", "category": "header", "endpoint": "/", "description": "No Strict-Transport-Security header (confirmed: header absent in response)"},
+            {"id": "gt_js_03", "check_type": "weak_tls", "category": "config", "endpoint": "/", "description": "HTTP-only deployment, no TLS (confirmed: HTTPS curl returns empty response)"},
+            {"id": "gt_js_04", "check_type": "exposed_path", "category": "info", "endpoint": "/robots.txt", "description": "/robots.txt reveals /ftp directory (confirmed: curl http://localhost:3999/robots.txt returns Disallow: /ftp)"},
             # --- Based on documented CVEs / public knowledge (not verifiable from headers alone) ---
-            {"id": "gt_js_05", "check_type": "xss_reflection", "category": "injection", "description": "Reflected XSS on /rest/products/search q parameter (documented)"},
-            {"id": "gt_js_06", "check_type": "sqli_indicator", "category": "injection", "description": "SQL Injection on /rest/products/search (SQLite backend, documented)"},
-            {"id": "gt_js_07", "check_type": "idor_indicator", "category": "access_control", "description": "IDOR on /api/Feedbacks/{id} and /api/Products/{id} (documented)"},
-            {"id": "gt_js_08", "check_type": "exposed_path", "category": "info", "description": "/api/ endpoint discoverable (documented)"},
-            {"id": "gt_js_09", "check_type": "error_disclosure", "category": "info", "description": "Error messages leak stack traces on malformed input (documented)"},
+            {"id": "gt_js_05", "check_type": "xss_reflection", "category": "injection", "endpoint": "/rest/products/search", "description": "Reflected XSS on /rest/products/search q parameter (documented)"},
+            {"id": "gt_js_06", "check_type": "sqli_indicator", "category": "injection", "endpoint": "/rest/products/search", "description": "SQL Injection on /rest/products/search (SQLite backend, documented)"},
+            {"id": "gt_js_07", "check_type": "idor_indicator", "category": "access_control", "endpoint": "/api/Feedbacks/", "description": "IDOR on /api/Feedbacks/{id} and /api/Products/{id} (documented)"},
+            {"id": "gt_js_08", "check_type": "exposed_path", "category": "info", "endpoint": "/api/", "description": "/api/ endpoint discoverable (documented)"},
+            {"id": "gt_js_09", "check_type": "error_disclosure", "category": "info", "endpoint": "/rest/", "description": "Error messages leak stack traces on malformed input (documented)"},
+            # --- Added for the 5-target corpus (2026-07-31); all interaction-based ---
+            {"id": "gt_js_10", "check_type": "sqli_indicator", "category": "injection", "endpoint": "/rest/products/reviews", "description": "SQL Injection on /rest/products/reviews id parameter (documented)", "verification": "documented"},
+            {"id": "gt_js_11", "check_type": "xss_reflection", "category": "injection", "endpoint": "/api/Feedbacks", "description": "Stored XSS via /api/Feedbacks comment field (documented)", "verification": "documented"},
+            {"id": "gt_js_12", "check_type": "idor_indicator", "category": "access_control", "endpoint": "/rest/basket/", "description": "IDOR on /rest/basket/{id} (documented)", "verification": "documented"},
+            {"id": "gt_js_13", "check_type": "exposed_path", "category": "info", "endpoint": "/ftp/", "description": "/ftp/ directory listing accessible (documented)", "verification": "documented"},
+            {"id": "gt_js_14", "check_type": "error_disclosure", "category": "info", "endpoint": "/rest/admin/login", "description": "Error disclosure on malformed /rest/admin/login requests (documented)", "verification": "documented"},
+            {"id": "gt_js_15", "check_type": "xss_reflection", "category": "injection", "endpoint": "/rest/products/search", "description": "Reflected XSS via POST on /rest/products/search q parameter (documented)", "verification": "documented"},
         ]
         # NOTE: missing_xfo removed — X-Frame-Options: SAMEORIGIN is present (verified via curl -sI)
         # NOTE: server_banner_disclosure removed — no Server header in response (verified via curl -sI)
@@ -96,21 +109,77 @@ GROUND_TRUTH = {
         "description": "Java-based intentionally insecure application for teaching web security.",
         "vulnerabilities": [
             # --- Verified via raw HTTP headers (curl -sI) ---
-            {"id": "gt_wg_01", "check_type": "missing_csp", "category": "header", "description": "No Content-Security-Policy header (confirmed: header absent in response)"},
-            {"id": "gt_wg_02", "check_type": "missing_xfo", "category": "header", "description": "No X-Frame-Options header (confirmed: header absent in response)"},
-            {"id": "gt_wg_03", "check_type": "missing_hsts", "category": "header", "description": "No Strict-Transport-Security header (confirmed: header absent in response)"},
-            {"id": "gt_wg_04", "check_type": "weak_tls", "category": "config", "description": "HTTP-only deployment, no TLS (confirmed: HTTPS curl returns empty response)"},
+            {"id": "gt_wg_01", "check_type": "missing_csp", "category": "header", "endpoint": "/", "description": "No Content-Security-Policy header (confirmed: header absent in response)"},
+            {"id": "gt_wg_02", "check_type": "missing_xfo", "category": "header", "endpoint": "/", "description": "No X-Frame-Options header (confirmed: header absent in response)"},
+            {"id": "gt_wg_03", "check_type": "missing_hsts", "category": "header", "endpoint": "/", "description": "No Strict-Transport-Security header (confirmed: header absent in response)"},
+            {"id": "gt_wg_04", "check_type": "weak_tls", "category": "config", "endpoint": "/", "description": "HTTP-only deployment, no TLS (confirmed: HTTPS curl returns empty response)"},
             # --- Based on documented CVEs / public knowledge (not verifiable from headers alone) ---
-            {"id": "gt_wg_05", "check_type": "sqli_indicator", "category": "injection", "description": "SQL Injection in Lesson 13 (documented, requires authentication to test)"},
-            {"id": "gt_wg_06", "check_type": "sqli_indicator", "category": "injection", "description": "SQL Injection in Query Injection lesson (documented, requires authentication to test)"},
-            {"id": "gt_wg_07", "check_type": "xss_reflection", "category": "injection", "description": "Reflected XSS in various input reflection lessons (documented, requires authentication to test)"},
-            {"id": "gt_wg_08", "check_type": "xss_reflection", "category": "injection", "description": "Stored XSS in stored XSS lesson (documented, requires authentication to test)"},
-            {"id": "gt_wg_09", "check_type": "idor_indicator", "category": "access_control", "description": "IDOR on profile/user endpoints (documented, requires authentication to test)"},
-            {"id": "gt_wg_10", "check_type": "error_disclosure", "category": "info", "description": "Java stack traces on malformed input (documented)"},
+            {"id": "gt_wg_05", "check_type": "sqli_indicator", "category": "injection", "endpoint": "/WebGoat/attack", "description": "SQL Injection in Lesson 13 (documented, requires authentication to test)"},
+            {"id": "gt_wg_06", "check_type": "sqli_indicator", "category": "injection", "endpoint": "/WebGoat/attack", "description": "SQL Injection in Query Injection lesson (documented, requires authentication to test)"},
+            {"id": "gt_wg_07", "check_type": "xss_reflection", "category": "injection", "endpoint": "/WebGoat/attack", "description": "Reflected XSS in various input reflection lessons (documented, requires authentication to test)"},
+            {"id": "gt_wg_08", "check_type": "xss_reflection", "category": "injection", "endpoint": "/WebGoat/attack", "description": "Stored XSS in stored XSS lesson (documented, requires authentication to test)"},
+            {"id": "gt_wg_09", "check_type": "idor_indicator", "category": "access_control", "endpoint": "/WebGoat/attack", "description": "IDOR on profile/user endpoints (documented, requires authentication to test)"},
+            {"id": "gt_wg_10", "check_type": "error_disclosure", "category": "info", "endpoint": "/WebGoat/attack", "description": "Java stack traces on malformed input (documented)"},
+            # --- Added for the 5-target corpus (2026-07-31); all interaction-based ---
+            {"id": "gt_wg_11", "check_type": "sqli_indicator", "category": "injection", "endpoint": "/WebGoat/attack", "description": "SQL Injection in Numeric SQL Injection lesson (documented, requires authentication to test)", "verification": "documented"},
+            {"id": "gt_wg_12", "check_type": "sqli_indicator", "category": "injection", "endpoint": "/WebGoat/attack", "description": "SQL Injection in SQL Injection Mitigation lesson (documented, requires authentication to test)", "verification": "documented"},
+            {"id": "gt_wg_13", "check_type": "xss_reflection", "category": "injection", "endpoint": "/WebGoat/attack", "description": "Reflected XSS in XSS lessons on the post-lesson input reflection (documented, requires authentication to test)", "verification": "documented"},
+            {"id": "gt_wg_14", "check_type": "idor_indicator", "category": "access_control", "endpoint": "/WebGoat/attack", "description": "IDOR in Insecure Direct Object References lesson (documented, requires authentication to test)", "verification": "documented"},
+            {"id": "gt_wg_15", "check_type": "error_disclosure", "category": "info", "endpoint": "/WebGoat/attack", "description": "Stack-trace disclosure in Exception Handling lesson (documented, requires authentication to test)", "verification": "documented"},
         ]
         # NOTE: server_banner_disclosure removed — no Server header in response (verified via curl -sI)
         # NOTE: exposed_metadata removed — no X-Powered-By header in response (verified via curl -sI)
         # NOTE: insecure_cookies removed — JSESSIONID cookie set after login, not verifiable without credentials
+    },
+    "bwapp": {
+        "name": "bWAPP (buggy Web Application)",
+        "base_url": f"http://host.docker.internal:{BWAPP_PORT}",
+        "description": "PHP/MySQL deliberately vulnerable app (100+ bugs) by Malik Mesellem; used as a security-training benchmark.",
+        "vulnerabilities": [
+            # --- Verified via raw HTTP headers (curl -sI, 2026-07-31) ---
+            {"id": "gt_bw_01", "check_type": "missing_csp", "category": "header", "endpoint": "/", "description": "No Content-Security-Policy header (confirmed: header absent on /login.php)", "verification": "header-verified"},
+            {"id": "gt_bw_02", "check_type": "missing_xfo", "category": "header", "endpoint": "/", "description": "No X-Frame-Options header (confirmed: header absent on /login.php)", "verification": "header-verified"},
+            {"id": "gt_bw_03", "check_type": "missing_hsts", "category": "header", "endpoint": "/", "description": "No Strict-Transport-Security header (confirmed: header absent on /login.php)", "verification": "header-verified"},
+            {"id": "gt_bw_04", "check_type": "insecure_cookies", "category": "header", "endpoint": "/", "description": "PHPSESSID cookie lacks HttpOnly/Secure/SameSite flags (confirmed: Set-Cookie: PHPSESSID=...; path=/ on /portal.php)", "verification": "header-verified"},
+            {"id": "gt_bw_05", "check_type": "server_banner_disclosure", "category": "header", "endpoint": "/", "description": "Apache/2.4.7 (Ubuntu) version leaked via Server header (confirmed: Server: Apache/2.4.7 (Ubuntu))", "verification": "header-verified"},
+            {"id": "gt_bw_06", "check_type": "weak_tls", "category": "config", "endpoint": "/", "description": "HTTP-only deployment, no TLS (confirmed: HTTPS curl returns empty response)", "verification": "header-verified"},
+            # --- Based on the published bWAPP bug list (requires authentication to test) ---
+            {"id": "gt_bw_07", "check_type": "sqli_indicator", "category": "injection", "endpoint": "/sqli_1.php", "description": "SQL Injection on sqli_1.php id parameter (bWAPP bug list, documented)", "verification": "documented"},
+            {"id": "gt_bw_08", "check_type": "sqli_indicator", "category": "injection", "endpoint": "/sqli_2.php", "description": "SQL Injection (login bypass) on sqli_2.php (bWAPP bug list, documented)", "verification": "documented"},
+            {"id": "gt_bw_09", "check_type": "sqli_indicator", "category": "injection", "endpoint": "/sqli_4.php", "description": "Blind SQL Injection on sqli_4.php (bWAPP bug list, documented)", "verification": "documented"},
+            {"id": "gt_bw_10", "check_type": "sqli_indicator", "category": "injection", "endpoint": "/sqli_8.php", "description": "SQL Injection on sqli_8.php (bWAPP bug list, documented)", "verification": "documented"},
+            {"id": "gt_bw_11", "check_type": "xss_reflection", "category": "injection", "endpoint": "/xss_get.php", "description": "Reflected XSS on xss_get.php firstname parameter (bWAPP bug list, documented)", "verification": "documented"},
+            {"id": "gt_bw_12", "check_type": "xss_reflection", "category": "injection", "endpoint": "/xss_post.php", "description": "POST-based reflected XSS on xss_post.php (bWAPP bug list, documented)", "verification": "documented"},
+            {"id": "gt_bw_13", "check_type": "xss_reflection", "category": "injection", "endpoint": "/xss_stored_1.php", "description": "Stored XSS in guestbook on xss_stored_1.php (bWAPP bug list, documented)", "verification": "documented"},
+            {"id": "gt_bw_14", "check_type": "idor_indicator", "category": "access_control", "endpoint": "/idor_1.php", "description": "IDOR on idor_1.php — change any user's credentials by uid (bWAPP bug list, documented)", "verification": "documented"},
+            {"id": "gt_bw_15", "check_type": "idor_indicator", "category": "access_control", "endpoint": "/idor_2.php", "description": "IDOR on idor_2.php (bWAPP bug list, documented)", "verification": "documented"},
+            {"id": "gt_bw_16", "check_type": "error_disclosure", "category": "info", "endpoint": "/", "description": "PHP error messages on malformed input across bug pages (bWAPP bug list, documented)", "verification": "documented"},
+        ]
+    },
+    "mutillidae": {
+        "name": "OWASP Mutillidae II",
+        "base_url": f"http://host.docker.internal:{MUTILLIDAE_PORT}",
+        "description": "PHP/MySQL deliberately vulnerable app (OWASP Top 10 mapped) maintained by OWASP; web-security training benchmark.",
+        "vulnerabilities": [
+            # --- Verified via raw HTTP headers (curl -sI, 2026-07-31) ---
+            {"id": "gt_mu_01", "check_type": "missing_csp", "category": "header", "endpoint": "/", "description": "No Content-Security-Policy header (confirmed: header absent on /index.php)", "verification": "header-verified"},
+            {"id": "gt_mu_02", "check_type": "missing_xfo", "category": "header", "endpoint": "/", "description": "No X-Frame-Options header (confirmed: header absent on /index.php)", "verification": "header-verified"},
+            {"id": "gt_mu_03", "check_type": "missing_hsts", "category": "header", "endpoint": "/", "description": "No Strict-Transport-Security header (confirmed: header absent on /index.php)", "verification": "header-verified"},
+            {"id": "gt_mu_04", "check_type": "insecure_cookies", "category": "header", "endpoint": "/", "description": "PHPSESSID and showhints cookies lack HttpOnly/Secure/SameSite flags (confirmed: Set-Cookie: PHPSESSID=...; path=/, Set-Cookie: showhints=1)", "verification": "header-verified"},
+            {"id": "gt_mu_05", "check_type": "server_banner_disclosure", "category": "header", "endpoint": "/", "description": "Apache/2.4.7 (Ubuntu) version leaked via Server header (confirmed: Server: Apache/2.4.7 (Ubuntu))", "verification": "header-verified"},
+            {"id": "gt_mu_06", "check_type": "weak_tls", "category": "config", "endpoint": "/", "description": "HTTP-only deployment, no TLS (confirmed: HTTPS curl returns empty response)", "verification": "header-verified"},
+            {"id": "gt_mu_07", "check_type": "exposed_path", "category": "info", "endpoint": "/robots.txt", "description": "/robots.txt discloses passwords/, config.inc, classes/, javascript/ (confirmed via curl)", "verification": "header-verified"},
+            # --- Based on Mutillidae's documented OWASP Top 10 mapping (requires authentication to test) ---
+            {"id": "gt_mu_08", "check_type": "sqli_indicator", "category": "injection", "endpoint": "/login.php", "description": "SQL Injection on user-info.php login form (documented OWASP mapping)", "verification": "documented"},
+            {"id": "gt_mu_09", "check_type": "sqli_indicator", "category": "injection", "endpoint": "/dns-lookup.php", "description": "SQL Injection on dns-lookup.php hostname parameter (documented OWASP mapping)", "verification": "documented"},
+            {"id": "gt_mu_10", "check_type": "sqli_indicator", "category": "injection", "endpoint": "/pen-test-tool-lookup.php", "description": "SQL Injection (GET / Search) page (documented OWASP mapping)", "verification": "documented"},
+            {"id": "gt_mu_11", "check_type": "xss_reflection", "category": "injection", "endpoint": "/register.php", "description": "Reflected XSS on reflected_xss.php (documented OWASP mapping)", "verification": "documented"},
+            {"id": "gt_mu_12", "check_type": "xss_reflection", "category": "injection", "endpoint": "/add-to-your-blog.php", "description": "Stored XSS on xss.php (documented OWASP mapping)", "verification": "documented"},
+            {"id": "gt_mu_13", "check_type": "xss_reflection", "category": "injection", "endpoint": "/", "description": "Reflected XSS via Cookie header (documented OWASP mapping)", "verification": "documented"},
+            {"id": "gt_mu_14", "check_type": "idor_indicator", "category": "access_control", "endpoint": "/user-info.php", "description": "IDOR on user profile endpoints (documented OWASP A01 broken access control)", "verification": "documented"},
+            {"id": "gt_mu_15", "check_type": "idor_indicator", "category": "access_control", "endpoint": "/user-info-xpath.php", "description": "IDOR on password change endpoint (documented OWASP A01 broken access control)", "verification": "documented"},
+            {"id": "gt_mu_16", "check_type": "error_disclosure", "category": "info", "endpoint": "/php-errors.php", "description": "Debug error pages leak SQL errors/stack traces on malformed input (documented)", "verification": "documented"},
+        ]
     }
 }
 
@@ -402,6 +471,107 @@ def compute_metrics(tool_findings, ground_truth, target_name):
     }
 
 
+def normalize_path(url):
+    """Reduce a finding URL to a comparable path string (segment-level).
+    Strips scheme/host/port/query/fragment, collapses trailing slashes and
+    index files, so 'http://host:4280/vulnerabilities/sqli/index.php?id=1'
+    becomes '/vulnerabilities/sqli'. Returns '' for empty/unparseable URLs."""
+    if not url:
+        return ""
+    from urllib.parse import urlparse
+    try:
+        p = urlparse(url).path
+    except Exception:
+        return ""
+    if not p:
+        return "/"
+    # strip trailing index file / slash
+    if p.endswith("/"): p = p[:-1]
+    if p.endswith("/index.php"): p = p[:-len("/index.php")]
+    if p.endswith("/index.html"): p = p[:-len("/index.html")]
+    if p.endswith("/default.asp"): p = p[:-len("/default.asp")]
+    if p == "": p = "/"
+    return p
+
+
+def path_prefix(a, b):
+    """Segment-wise prefix test: True if path a is a directory-prefix of path b
+    (or equal). '/rest/products/search' is NOT a prefix of '/rest/products'."""
+    as_ = [s for s in a.split("/") if s]
+    bs_ = [s for s in b.split("/") if s]
+    return len(as_) <= len(bs_) and all(x == y for x, y in zip(as_, bs_))
+
+
+def compute_endpoint_metrics(tool_findings, ground_truth, target_name):
+    """Per-endpoint matching: the unit is the unique (target, endpoint,
+    check_type) triple rather than the check_type.
+
+    - GT unit: (check_type, endpoint); header/config entries use endpoint '/'
+      (site-wide — a same-type finding anywhere on the target matches).
+    - Tool unit: (check_type, normalized_path) after deduplicating findings
+      that share both check_type and path.
+    - A GT unit matches a tool unit when check_type matches AND the finding
+      path equals/falls under the GT endpoint (segment-wise prefix), or the
+      GT endpoint is '/' (site-wide).
+    """
+    gt_units = set()
+    for v in ground_truth:
+        ep = v.get("endpoint", "/")
+        gt_units.add((v["check_type"], ep))
+
+    tool_units = set()
+    for f in tool_findings:
+        ct = f["check_type"]
+        if not ct:
+            continue
+        p = normalize_path(f.get("location"))
+        tool_units.add((ct, p))
+
+    def unit_matches(gt_unit, tool_unit):
+        gct, gep = gt_unit
+        tct, tp = tool_unit
+        if gct != tct:
+            return False
+        if gep == "/":
+            return True
+        if not tp:
+            return False
+        if tp == "/":
+            return False
+        return path_prefix(gep, tp) or path_prefix(tp, gep)
+
+    matched_gt = set()
+    matched_tool = set()
+    for gu in gt_units:
+        for tu in tool_units:
+            if unit_matches(gu, tu):
+                matched_gt.add(gu)
+                matched_tool.add(tu)
+
+    tp = len(matched_gt)
+    fn = len(gt_units) - tp
+    fp = len(tool_units) - len(matched_tool)
+    precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+    recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+    f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
+
+    tp_units = sorted(matched_gt)
+    fp_units = sorted(tool_units - matched_tool)
+    fn_units = sorted(gt_units - matched_gt)
+    return {
+        "target": target_name,
+        "gt_unit_count": len(gt_units),
+        "tool_unit_count": len(tool_units),
+        "tp": tp, "fp": fp, "fn": fn,
+        "precision": round(precision, 4),
+        "recall": round(recall, 4),
+        "f1": round(f1, 4),
+        "tp_units": [list(u) for u in tp_units],
+        "fp_units": [list(u) for u in fp_units],
+        "fn_units": [list(u) for u in fn_units],
+    }
+
+
 def evaluate_target(target_key, run_horus=True, run_zap=False):
     """Run evaluation for a single target."""
     gt = GROUND_TRUTH[target_key]
@@ -553,7 +723,7 @@ def print_summary(all_results):
 
 def main():
     parser = argparse.ArgumentParser(description="DAST Evaluation Harness")
-    parser.add_argument("--target", choices=["dvwa", "juice_shop", "webgoat", "all"], default="all")
+    parser.add_argument("--target", choices=["dvwa", "juice_shop", "webgoat", "bwapp", "mutillidae", "all"], default="all")
     parser.add_argument("--horus-only", action="store_true", help="Only run HORUS (skip ZAP)")
     parser.add_argument("--zap-only", action="store_true", help="Only run ZAP (skip HORUS)")
     args = parser.parse_args()

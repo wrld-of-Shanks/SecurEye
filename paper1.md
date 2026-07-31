@@ -26,11 +26,11 @@ Specula (whose scanning suite is codenamed **HORUS**) is a containerized, multi-
 
 **Key Results:**
 - XGBoost classifier achieves **99.87% weighted F1** on NSL-KDD (KDDTrain+) with **86.70% accuracy** on the held-out KDDTest+ benchmark.
-- CodeBERT fine-tuned classifier achieves **99.6% validation accuracy** across 7 vulnerability classes.
+- CodeBERT fine-tuned classifier achieves **99.6% validation accuracy** across 7 vulnerability classes — measured on the synthetic training distribution; generalization to real-world codebases has not yet been evaluated.
 - Isolation Forest provides unsupervised novelty detection with **9.93% false positive rate** at 0.5 contamination threshold.
 - Context-aware rule engine eliminates **85% of false positives** on parameterized SQL queries.
 - TPOT AutoML integration enables evolutionary search for optimal sklearn pipelines.
-- DAST evaluation achieves **0.800 precision** and **0.400 recall** (F1=0.533) against independently verified ground truth on DVWA, Juice Shop, and WebGoat (30 instances, check_type-level matching), outperforming OWASP ZAP 2.17.0 baseline (P=0.368, R=0.233, F1=0.286) on the same targets and ground truth. All 5 passive header check types detected correctly; 3 false positives from an over-broad `exposed_metadata` check (reduced from 4 by check_type-level deduplication); zero active injection findings for both tools due to authentication and SPA limitations.
+- DAST evaluation achieves **0.821 precision** and **0.303 recall** (F1=0.442) against independently verified ground truth on DVWA, Juice Shop, WebGoat, bWAPP, and Mutillidae (76 instances across 11 check types, check_type-level matching; stricter per-endpoint (target, endpoint, check_type) matching gives F1 0.479), outperforming OWASP ZAP 2.17.0 run in its standard unauthenticated configuration — the default setup typical of a quick external scan, with no credential injection and no browser-based crawling (P=0.328, R=0.276, F1=0.300; per-endpoint F1 0.248) — on the same targets and ground truth. All passive header check types detected correctly; only 5 false positives (4 from an over-broad `exposed_metadata` check, 1 `open_redirect`); XSS reflection detection remains at zero for both tools due to authentication and SPA limitations, and SQL injection detection is limited to WebGoat (detected by ZAP only).
 
 ---
 
@@ -134,11 +134,13 @@ else:
 
 | Tier | Model | Accuracy | Purpose |
 |------|-------|----------|---------|
-| 1 | CodeBERT (125M params) | 99.6% | Primary classifier — 7 vulnerability classes |
+| 1 | CodeBERT (125M params) | 99.6% (validation, synthetic corpus) | Primary classifier — 7 vulnerability classes |
 | 2 | Rule-based (regex/AST) | 87.0% | Fallback + context-aware validation |
 | 3 | CodeT5 (seq2seq) | BLEU-based | Fix generation with beam search |
 
 **Vulnerability classes:** `not_vulnerable, sql_injection, xss, hardcoded_credentials, command_injection, path_traversal, insecure_deserialization`
+
+**Note on the 99.6% figure:** this is CodeBERT's *validation* accuracy measured on a train/validation split of the synthetic `cve_dataset.csv` corpus (4,239 samples, Section 5.1). It is not a held-out test evaluation on real-world code; generalization to production codebases remains unevaluated (Section 12, limitation 2).
 
 **Key innovation — Context-aware rules:** The rule engine distinguishes between:
 ```sql
@@ -207,8 +209,10 @@ When a pipeline is present, the network service uses it as the primary classifie
 | XGBoost | Macro F1 (KDDTest+) | 0.74 |
 | Isolation Forest | FP rate (normal traffic) | 9.93% |
 | Isolation Forest | Detection rate (attack traffic) | 78.06% |
-| CodeBERT | Validation accuracy | 99.6% |
+| CodeBERT | Validation accuracy (synthetic corpus) | 99.6% |
 | Rule-based | Macro F1 | 0.852 |
+
+*CodeBERT's 99.6% is validation accuracy on the synthetic training distribution (Table 5.1), not a held-out real-world evaluation. In contrast, the XGBoost rows are measured against the genuinely held-out KDDTest+ benchmark, which is why the two figures are not directly comparable in strength of evidence.*
 
 ### 5.3 Feature Engineering
 
@@ -598,21 +602,23 @@ Specula/
 
 ### 11.1 Scope and Caveats
 
-The DAST evaluation uses manually labeled ground truth against three deliberately vulnerable web applications (DVWA, OWASP Juice Shop, OWASP WebGoat). This is fundamentally different from the NIDS evaluation, which uses the NSL-KDD benchmark with 22,544 labeled test instances. Ground truth labeling for DAST is manual and does not scale the way benchmark datasets do — each target requires per-endpoint security knowledge to annotate correctly. The total ground truth is 30 labeled vulnerability instances across 3 targets and 10 distinct check types. This is a small-n evaluation by design: it measures detection capability against known-vulnerable applications, not statistical generalization across a population.
+The DAST evaluation uses manually labeled ground truth against five deliberately vulnerable web applications (DVWA, OWASP Juice Shop, OWASP WebGoat, bWAPP, and Mutillidae II). This is fundamentally different from the NIDS evaluation, which uses the NSL-KDD benchmark with 22,544 labeled test instances. Ground truth labeling for DAST is manual and does not scale the way benchmark datasets do — each target requires per-endpoint security knowledge to annotate correctly. The total ground truth is 76 labeled vulnerability instances across 5 targets and 11 distinct check types. This is a small-n evaluation by design: it measures detection capability against known-vulnerable applications, not statistical generalization across a population.
 
-Additionally, the matching methodology is coarse. `compute_metrics()` matches at the **check_type level** (did HORUS find any `sqli_indicator` anywhere on the target?) rather than per-endpoint (did it find the specific SQLi at `/vulnerabilities/sqli/?id=1`?). This is an easier bar than per-instance scoring and inflates both precision and recall relative to what per-endpoint evaluation would produce. The choice is explicit: with only 30 ground-truth instances across 3 targets, per-endpoint matching would further reduce an already small sample. We report the matching granularity alongside the metrics so the reader can assess accordingly.
+Additionally, the matching methodology is coarse. The primary `compute_metrics()` matches at the **check_type level** (did HORUS find any `sqli_indicator` anywhere on the target?) rather than per-endpoint (did it find the specific SQLi at `/vulnerabilities/sqli/?id=1`?). This is an easier bar than per-instance scoring and inflates both precision and recall relative to what per-endpoint evaluation would produce. We therefore report **both** granularities: check_type-level as the primary metric and per-endpoint (target, endpoint, check_type) matching side by side (Section 11.3). The choice of primary metric is explicit: with only 76 ground-truth instances across 5 targets, per-endpoint matching would further reduce an already small sample. We report both so the reader can assess accordingly.
 
 **Post-hoc ground truth correction.** The initial ground truth (defined before running HORUS) included 12 check types. After the first evaluation run, two categories — `exposed_metadata` and `weak_tls` — were added post-hoc because HORUS reported them and manual inspection suggested they were real findings. This introduced circularity: ground truth was adjusted based on the tool's own output. To correct this, all ground truth entries were independently verified by inspecting raw HTTP response headers (`curl -sI`) and TLS configuration, without reference to HORUS's output. This verification process (detailed in Section 11.2) resulted in: (a) removal of `exposed_metadata` from all targets (no `X-Powered-By` or equivalent implementation-detail headers confirmed), (b) removal of `missing_xfo` from Juice Shop (`X-Frame-Options: SAMEORIGIN` is present), (c) removal of `server_banner_disclosure` from Juice Shop and WebGoat (no `Server` header confirmed), and (d) removal of `insecure_cookies` from Juice Shop (JWT-based auth, no session cookies) and WebGoat (cookies set after login, not verifiable without credentials). The final ground truth reflects what is independently verifiable about each target, not what HORUS reported.
 
 ### 11.2 Methodology
 
-Three deliberately vulnerable web applications were deployed as Docker containers:
+Five deliberately vulnerable web applications were deployed as Docker containers:
 
 | Target | Type | GT Labels | Verification Method |
 |--------|------|-----------|---------------------|
-| DVWA | PHP/MySQL | 11 | Raw headers (curl -sI) + documented CVEs |
-| Juice Shop | Node.js/Angular | 9 | Raw headers (curl -sI) + documented CVEs |
-| WebGoat | Java/Tomcat | 10 | Raw headers (curl -sI) + documented CVEs |
+| DVWA | PHP/MySQL | 14 | Raw headers (curl -sI) + documented CVEs |
+| Juice Shop | Node.js/Angular | 15 | Raw headers (curl -sI) + documented CVEs |
+| WebGoat | Java/Tomcat | 15 | Raw headers (curl -sI) + documented CVEs |
+| bWAPP | PHP/MySQL | 16 | Raw headers (curl -sI) + documented CVEs |
+| Mutillidae | PHP/MySQL | 16 | Raw headers (curl -sI) + documented CVEs |
 
 **Ground truth verification evidence (raw headers):**
 
@@ -647,7 +653,30 @@ WebGoat (`curl -sI http://localhost:8082/WebGoat/login`):
 HTTPS: empty response                       ← weak_tls confirmed (HTTP-only)
 ```
 
-Labels span 10 check types: `missing_csp`, `missing_xfo`, `missing_hsts`, `server_banner_disclosure`, `insecure_cookies`, `sqli_indicator`, `xss_reflection`, `exposed_path`, `error_disclosure`, `idor_indicator`, and `weak_tls`. Header-verified labels (6 of 30) are marked in the ground truth source code; the remaining 24 are based on documented CVEs and require application interaction to test (authentication, injection payloads).
+bWAPP (`curl -sI http://localhost:4281/login.php`):
+```
+Server: Apache/2.4.7 (Ubuntu)               ← server_banner_disclosure confirmed
+X-Powered-By: PHP/5.5.9-1ubuntu4.14         ← server_banner_disclosure confirmed
+Set-Cookie: PHPSESSID=...; path=/           ← insecure_cookies confirmed (no HttpOnly/Secure/SameSite)
+[no Content-Security-Policy]                 ← missing_csp confirmed
+[no X-Frame-Options]                        ← missing_xfo confirmed
+[no Strict-Transport-Security]              ← missing_hsts confirmed
+HTTPS: empty response                       ← weak_tls confirmed (HTTP-only)
+```
+
+Mutillidae (`curl -sI http://localhost:4282/index.php`):
+```
+Server: Apache/2.4.7 (Ubuntu)               ← server_banner_disclosure confirmed
+X-Powered-By: PHP/5.5.9-1ubuntu4.25         ← server_banner_disclosure confirmed
+Set-Cookie: PHPSESSID=...; path=/           ← insecure_cookies confirmed (no HttpOnly/Secure/SameSite)
+Set-Cookie: showhints=...; path=/           ← insecure_cookies confirmed
+[no Content-Security-Policy]                 ← missing_csp confirmed
+[no X-Frame-Options]                        ← missing_xfo confirmed
+[no Strict-Transport-Security]              ← missing_hsts confirmed
+HTTPS: empty response                       ← weak_tls confirmed (HTTP-only)
+```
+
+Labels span 11 check types: `missing_csp`, `missing_xfo`, `missing_hsts`, `server_banner_disclosure`, `insecure_cookies`, `sqli_indicator`, `xss_reflection`, `exposed_path`, `error_disclosure`, `idor_indicator`, and `weak_tls`. Of the 76 entries, 13 carry explicit `header-verified` annotations (the bWAPP and Mutillidae header labels), 33 carry `documented` annotations (based on published CVEs and require application interaction to test — authentication, injection payloads), and the remaining 30 (the original three-target set) were independently verified by raw-header inspection per Section 11.1, with header labels marked "(confirmed)" in their descriptions.
 
 Metrics use standard information retrieval definitions with check_type-level matching:
 
@@ -661,79 +690,113 @@ Metrics use standard information retrieval definitions with check_type-level mat
 
 ### 11.3 Results: HORUS vs OWASP ZAP
 
-To contextualize HORUS's detection capability, we ran OWASP ZAP 2.17.0 against the same three targets using the identical ground truth and check_type-level matching. ZAP was executed natively on macOS (Java 17) with its standard spider, passive scan, and active scan pipeline. The same deduplication-by-check-type logic was applied to both tools' outputs.
+To contextualize HORUS's detection capability, we compared against OWASP ZAP 2.17.0 run in its **standard unauthenticated configuration — the default setup typical of a quick external scan**: out-of-box spider, passive scan, and active scan, with no credential/authentication injection and no browser-based (Ajax) crawling. ZAP was executed natively on macOS (Java 17). We deliberately did not tune ZAP (no authenticated sessions, no custom scan policies, no browser driver) because that configuration represents the practical baseline a security team receives from an external scan of a login-gated or SPA application. The same deduplication-by-check-type logic was applied to both tools' outputs.
 
 **HORUS results (findings deduplicated by check_type before metric computation; see Section 11.6):**
 
 | Target | GT | Findings | TP | FP | FN | Precision | Recall | F1 | Scan Time |
 |--------|----|----------|----|----|----|-----------|--------|----|-----------|
-| DVWA | 11 | 6 | 5 | 1 | 6 | 0.833 | 0.455 | 0.588 | 0.3s |
-| Juice Shop | 9 | 4 | 3 | 1 | 6 | 0.750 | 0.333 | 0.462 | 0.2s |
-| WebGoat | 10 | 5 | 4 | 1 | 6 | 0.800 | 0.400 | 0.533 | 0.4s |
-| **Aggregate** | **30** | **15** | **12** | **3** | **18** | **0.800** | **0.400** | **0.533** | **~0.3s** |
+| DVWA | 14 | 6 | 5 | 1 | 9 | 0.833 | 0.357 | 0.500 | 0.3s |
+| Juice Shop | 15 | 4 | 3 | 1 | 12 | 0.750 | 0.200 | 0.316 | 0.7s |
+| WebGoat | 15 | 5 | 4 | 1 | 11 | 0.800 | 0.267 | 0.400 | 1.6s |
+| bWAPP | 16 | 6 | 5 | 1 | 11 | 0.833 | 0.312 | 0.455 | 0.6s |
+| Mutillidae | 16 | 7 | 6 | 1 | 10 | 0.857 | 0.375 | 0.522 | 0.3s |
+| **Aggregate** | **76** | **28** | **23** | **5** | **53** | **0.821** | **0.303** | **0.442** | **0.3–1.6s** |
 
-**ZAP results (spider + passive + active):**
+**ZAP results (standard unauthenticated configuration — default spider + passive + active scan):**
 
 | Target | GT | Findings | TP | FP | FN | Precision | Recall | F1 | Scan Time |
 |--------|----|----------|----|----|----|-----------|--------|----|-----------|
-| DVWA | 11 | 10 | 4 | 6 | 7 | 0.400 | 0.364 | 0.381 | 10.1s |
-| Juice Shop | 9 | 5 | 1 | 4 | 8 | 0.200 | 0.111 | 0.143 | 258s |
-| WebGoat | 10 | 4 | 2 | 2 | 8 | 0.500 | 0.200 | 0.286 | 13.6s |
-| **Aggregate** | **30** | **19** | **7** | **12** | **23** | **0.368** | **0.233** | **0.286** | **10s–258s** |
+| DVWA | 14 | 10 | 4 | 6 | 10 | 0.400 | 0.286 | 0.333 | 25.8s |
+| Juice Shop | 15 | 4 | 1 | 3 | 14 | 0.250 | 0.067 | 0.105 | 3111.7s |
+| WebGoat | 15 | 11 | 6 | 5 | 9 | 0.429 | 0.400 | 0.414 | 158.6s |
+| bWAPP | 16 | 12 | 5 | 7 | 11 | 0.417 | 0.312 | 0.357 | 74.2s |
+| Mutillidae | 16 | 24 | 5 | 19 | 11 | 0.208 | 0.312 | 0.250 | 3131.3s |
+| **Aggregate** | **76** | **61** | **21** | **43** | **55** | **0.328** | **0.276** | **0.300** | **26s–3112s** |
+
+**Per-endpoint matching (target, endpoint, check_type).** The tables above match at the check_type level, which counts every labeled ground-truth *instance* (e.g., WebGoat's four SQLi lessons are four instances). The same findings were re-scored at the stricter endpoint level, where the unit is the unique *(target, endpoint, check_type)* triple: findings must occur at the labeled endpoint (site-wide checks use `/`), and ground-truth instances sharing an endpoint collapse to one unit. The 76 instances reduce to 68 unique endpoint units; WebGoat collapses 15 → 8 because all its lessons POST to the same `/WebGoat/attack` URL and are distinguished only by the `lesson` parameter. Computed by `scripts/endpoint_matching.py` (`dast_eval_results/evaluation_summary_endpoint.json`), archive: `scripts/dast_eval_results/evaluation_summary_endpoint.json`.
+
+**HORUS — check_type-level vs per-endpoint (P / R / F1):**
+
+| Target | GT inst. | GT units | check_type | per-endpoint |
+|--------|----------|----------|------------|--------------|
+| DVWA | 14 | 14 | 0.833 / 0.357 / 0.500 | 0.833 / 0.357 / 0.500 |
+| Juice Shop | 15 | 14 | 0.750 / 0.200 / 0.316 | 0.750 / 0.214 / 0.333 |
+| WebGoat | 15 | 8 | 0.800 / 0.267 / 0.400 | 0.800 / 0.500 / 0.615 |
+| bWAPP | 16 | 16 | 0.833 / 0.312 / 0.455 | 0.833 / 0.312 / 0.455 |
+| Mutillidae | 16 | 16 | 0.857 / 0.375 / 0.522 | 0.857 / 0.375 / 0.522 |
+| **Aggregate** | **76** | **68** | **0.821 / 0.303 / 0.442** | **0.821 / 0.338 / 0.479** |
+
+**ZAP — check_type-level vs per-endpoint (P / R / F1):**
+
+| Target | GT inst. | GT units | check_type | per-endpoint |
+|--------|----------|----------|------------|--------------|
+| DVWA | 14 | 14 | 0.400 / 0.286 / 0.333 | 0.400 / 0.286 / 0.333 |
+| Juice Shop | 15 | 14 | 0.250 / 0.067 / 0.105 | 0.250 / 0.071 / 0.111 |
+| WebGoat | 15 | 8 | 0.429 / 0.400 / 0.414 | 0.182 / 0.250 / 0.210 |
+| bWAPP | 16 | 16 | 0.417 / 0.312 / 0.357 | 0.417 / 0.312 / 0.357 |
+| Mutillidae | 16 | 16 | 0.208 / 0.312 / 0.250 | 0.167 / 0.250 / 0.200 |
+| **Aggregate** | **76** | **68** | **0.328 / 0.276 / 0.300** | **0.262 / 0.235 / 0.248** |
+
+Two observations. First, for targets whose ground truth is dominated by site-wide header checks (DVWA, bWAPP, Mutillidae, Juice Shop), the two granularities agree closely — findings and labels both sit at `/`. Second, WebGoat moves in opposite directions for the two tools, and both effects are informative. HORUS's per-endpoint F1 *rises* (0.400 → 0.615): its four header findings cover four of the eight endpoint units, and the 11 lesson-based instances that were separate check_type-level FNs collapse into four same-endpoint units. ZAP's per-endpoint F1 *falls* (0.414 → 0.210): its genuine SQL injection alert fired at `/WebGoat/register.mvc` — a real injection at a *different* URL than the lesson ground truth (`/WebGoat/attack`) — so under endpoint matching it no longer counts as a true positive, becoming both an FP (finding at an unlabeled endpoint) and an FN (labeled endpoint unmatched). The Mutillidae ZAP row drops similarly (0.250 → 0.200) because its `error_disclosure` alert fired at `/includes/` while the label names `/php-errors.php`. At the stricter granularity, HORUS retains its precision advantage (0.821 vs 0.262) with aggregate F1 0.479 vs 0.248; the per-endpoint comparison does not change the qualitative conclusions.
 
 ### 11.4 Per-Finding Breakdown
 
-**True positives (12 findings across all targets):**
-- `missing_csp` — Content-Security-Policy header absent (all 3 targets)
-- `missing_xfo` — X-Frame-Options header absent (DVWA, WebGoat)
-- `missing_hsts` — Strict-Transport-Security header absent (all 3 targets)
-- `server_banner_disclosure` — Server version leaked in HTTP headers (DVWA only)
-- `weak_tls` — No TLS on HTTP-only deployment (all 3 targets)
+**True positives (23 instances across 6 check types):**
+- `missing_csp` — Content-Security-Policy header absent (all 5 targets)
+- `missing_hsts` — Strict-Transport-Security header absent (all 5 targets)
+- `weak_tls` — No TLS on HTTP-only deployment (all 5 targets)
+- `missing_xfo` — X-Frame-Options header absent (DVWA, WebGoat, bWAPP, Mutillidae)
+- `server_banner_disclosure` — Server version leaked in HTTP headers (DVWA, bWAPP, Mutillidae)
+- `insecure_cookies` — Session cookie missing security flags (Mutillidae; PHPSESSID without Secure/HttpOnly)
 
-**False positives (3 findings):**
-- `exposed_metadata` (3 findings) — The `check_exposed_metadata` function (`app.py:406`) tests three sensitive paths (`/.git/config`, `/.env`, `/robots.txt`) and flags any that return HTTP 200 with a substring indicator in the body. All 3 arise from two mechanisms. Under check_type-level matching, Juice Shop's two redundant `exposed_metadata` findings (one per path) are deduplicated to one.
-  1. **`.env` indicator too broad** (Juice Shop `/`, WebGoat `/`): The `.env` indicator is `=` (line 410), which matches virtually any HTML page. Both targets are SPAs that return their HTML shell for unknown paths; the `=` characters in HTML attributes satisfy the indicator. No actual `.env` file is exposed.
-  2. **Vocabulary mismatch on `/robots.txt`** (DVWA, Juice Shop): Both targets serve a real `/robots.txt` file (DVWA: `Disallow: /`; Juice Shop: `Disallow: /ftp`). HORUS classifies this as `exposed_metadata`, but the ground truth labels robots.txt exposure as `exposed_path` (Juice Shop) or has no equivalent label (DVWA). Same underlying fact, different check type — counts as FP for `exposed_metadata` and FN for `exposed_path` under check_type-level matching. (Juice Shop's contribution is deduplicated with the `.env` finding above.)
+**False positives (5 findings):**
+- `exposed_metadata` (4 findings) — The `check_exposed_metadata` function (`app.py:406`) tests three sensitive paths (`/.git/config`, `/.env`, `/robots.txt`) and flags any that return HTTP 200 with a substring indicator in the body. All 4 arise from three mechanisms.
+  1. **`.env` indicator too broad** (Juice Shop `/`): The `.env` indicator is `=` (line 410), which matches virtually any HTML page. Juice Shop is an SPA that returns its HTML shell for unknown paths; the `=` characters in HTML attributes satisfy the indicator. No actual `.env` file is exposed.
+  2. **Vocabulary mismatch on `/robots.txt`** (DVWA, bWAPP): Both targets serve a real `/robots.txt` file (`Disallow: /`). HORUS classifies this as `exposed_metadata`, but the ground truth labels robots.txt exposure as `exposed_path` (Juice Shop) or has no equivalent label. Same underlying fact, different check type — counts as FP for `exposed_metadata` and FN for `exposed_path` under check_type-level matching.
+  3. **`/.git/config` served by Mutillidae** — Mutillidae serves a real `/.git/config` at HTTP 200; the file is the git repository metadata bundled with the vulnerable app image. It is a genuine metadata exposure but has no matching ground-truth check type (no `exposed_metadata` GT category), so it counts as FP under strict matching.
+- `open_redirect` (1 finding, WebGoat) — HORUS's open-redirect probe (`app.py:430`) flags the `next` parameter accepted by WebGoat's redirect endpoint (`/WebGoat/attack?next=...`). This is a real open redirect with no corresponding ground-truth entry.
 
-**False negatives (18 missed check types):**
-- `sqli_indicator` — SQL injection endpoints (all 3 targets)
-- `xss_reflection` — Cross-site scripting endpoints (all 3 targets)
-- `insecure_cookies` — Session cookie missing security flags (DVWA only; Juice Shop uses JWT, WebGoat cookie not testable without auth)
-- `error_disclosure` — Error messages on malformed input (all 3 targets)
-- `exposed_path` — Discoverable admin/api paths (Juice Shop only; DVWA `/admin/` returns 404)
-- `idor_indicator` — Insecure direct object references (Juice Shop, WebGoat)
+**False negatives (53 missed check types):**
+- `sqli_indicator` (16) — SQL injection endpoints (all 5 targets)
+- `xss_reflection` (15) — Cross-site scripting reflection points (all 5 targets)
+- `error_disclosure` (8) — Error messages on malformed input (all 5 targets)
+- `idor_indicator` (8) — Insecure direct object references (Juice Shop, WebGoat, bWAPP, Mutillidae)
+- `exposed_path` (4) — Discoverable admin/api paths (Juice Shop 3, Mutillidae 1)
+- `insecure_cookies` (2) — DVWA, bWAPP (HORUS detects this only on Mutillidae; the DVWA/bWAPP session cookies are set over HTTP without flags but HORUS's cookie check only fires when the cookie is observed with an additional distinguishing condition such as a missing `HttpOnly`)
 
 ### 11.5 Analysis
 
-**HORUS vs ZAP comparison.** On this evaluation setup, HORUS outperforms ZAP in both precision (0.800 vs 0.368) and recall (0.400 vs 0.233), with an aggregate F1 of 0.533 vs 0.286. HORUS also completes scans orders of magnitude faster (~0.3s vs 10s–258s per target), though this reflects the fundamentally different scan approaches: HORUS performs targeted passive header analysis plus limited active probes, while ZAP performs full spider + passive scan + active scan with injection payloads. Juice Shop accounts for the upper end of this range — ZAP's active scan of Juice Shop took 246s, with progress stalling at 92% for approximately 120s while time-based injection rules exhausted their timeout against undiscovered SPA routes. (The stalling duration varies across runs; an earlier run stalled for 495s, producing a 570s total.)
+**HORUS vs ZAP comparison.** Against the standard unauthenticated ZAP configuration, HORUS outperforms ZAP in precision (0.821 vs 0.328) with a narrower recall edge (0.303 vs 0.276), yielding an aggregate F1 of 0.442 vs 0.300. HORUS also completes scans orders of magnitude faster (~0.3–1.6s vs 26s–3112s per target), though this reflects the fundamentally different scan approaches: HORUS performs targeted passive header analysis plus limited active probes, while ZAP performs full spider + passive scan + active scan with injection payloads. ZAP's scan times on the two large PHP targets dominated the range — its active scan of Juice Shop took 3111.7s and Mutillidae 3131.3s, both hitting the harness's active-scan polling cap (600 polls × 5s) before reaching completion, with raw alert collections truncated at the 2000-alert ceiling (302 raw alerts on bWAPP, 2000 on Mutillidae). These results reflect ZAP's default, out-of-box behavior; a tuned ZAP deployment (authenticated sessions, browser-based crawling) would be expected to detect more of the login-gated and SPA injection ground truth (Section 12, limitation 9).
 
-**What each tool catches.** Both tools detect the same core header misconfigurations: `missing_csp`, `missing_xfo`, and `server_banner_disclosure`. HORUS additionally detects `missing_hsts` and `weak_tls` on all targets (ZAP does not check for these). ZAP detects `insecure_cookies` on DVWA (HORUS does not). Neither tool detects injection vulnerabilities (`sqli_indicator`, `xss_reflection`) on any target — both are blocked by the same authentication walls and SPA limitations described below.
+**What each tool catches.** Both tools detect the same core header misconfigurations: `missing_csp`, `missing_xfo`, and `server_banner_disclosure`. HORUS additionally detects `missing_hsts` and `weak_tls` on all targets (ZAP has no matching alert type for either). ZAP additionally detects `insecure_cookies` (DVWA, bWAPP, WebGoat, Mutillidae) and `error_disclosure` (bWAPP, Mutillidae). For injection categories, neither tool detects `xss_reflection` on any target; `sqli_indicator` is detected only by ZAP on WebGoat (a genuine active-scan SQL injection alert against an unauthenticated lesson endpoint).
 
-**ZAP's false positives.** ZAP's 12 aggregate false positives come from informational findings not present in the ground truth: `timestamp_disclosure` (Unix timestamps in responses), `cross_domain` (cross-domain resource loading), `info_disclosure` (in-page banner leak), `missing_xcto` (X-Content-Type-Options absent), informational session/auth markers (`zap_10111`, `zap_10109`), `user_agent_fuzzer` (84 informational alerts from User-Agent variation testing), and `directory_browsing` (Directory Browsing enabled on DVWA paths). The same noise classes also appear on Juice Shop and WebGoat when the active scan runs to completion. These are valid findings in a broader security audit but do not correspond to the labeled ground truth categories in this evaluation.
+**ZAP's false positives.** ZAP's 43 aggregate false positives come from informational findings not present in the ground truth: session/auth markers (`zap_10111` Authentication Request Detected, `zap_10112` Session Management Response Identified, `zap_10109` Modern Web Application), `user_agent_fuzzer` (`zap_10104`), `timestamp_disclosure` (Unix timestamps in responses), `cross_domain` (cross-domain resource loading), `cors_misconfiguration`, `info_disclosure` (in-page banner leak), `missing_xcto` (X-Content-Type-Options absent), plus a long tail of active-scan artifacts (`zap_0`, `zap_10003`, `zap_10019`, `zap_10028`, `zap_10031`, `zap_10033`, `zap_10041`, `zap_10202`, `zap_2`, `zap_40042`, `zap_90003`, `zap_90030`) concentrated on the large PHP targets. These are valid findings in a broader security audit but do not correspond to the labeled ground truth categories in this evaluation.
 
-**Why HORUS outperforms on this setup.** The difference is primarily structural: HORUS's header analysis checks 6 header/config categories (CSP, XFO, HSTS, Server, TLS, cookies) while ZAP's passive scan covers a similar but slightly different set (CSP, XFO, X-Content-Type-Options, cookies, server). HORUS additionally includes the `exposed_metadata` and `weak_tls` active probes, which provide additional true positives. ZAP's spider discovers more URLs but this produces more noise (informational alerts) without improving recall on the labeled categories.
+**Why HORUS outperforms on this setup.** The difference is primarily structural: HORUS's header analysis checks 6 header/config categories (CSP, XFO, HSTS, Server, TLS, cookies) while ZAP's passive scan covers a similar but slightly different set (CSP, XFO, X-Content-Type-Options, cookies, server). HORUS additionally includes the `exposed_metadata`, `weak_tls`, and `open_redirect` active probes. ZAP's spider discovers more URLs, but this produces more noise (informational alerts) without improving recall on the labeled categories — hence the large F1 gap, which is driven almost entirely by precision (0.821 vs 0.328); recall is similar because both tools fail on the injection and IDOR ground truth.
 
-**What does not work (both tools):** The active scanning engine (SQLi, XSS, IDOR detection) produced zero findings across all three targets for both HORUS and ZAP. Three root causes:
+**What does not work (both tools):** Neither tool detects `xss_reflection` on any of the five targets (15 ground-truth instances), nor `idor_indicator` (8 instances). SQL injection (`sqli_indicator`, 16 instances) is detected only on WebGoat by ZAP; the remaining 12 instances across DVWA, Juice Shop, bWAPP, and Mutillidae are missed by both tools. Three root causes:
 
-1. **No authenticated crawling.** DVWA's injection endpoints require login. Without session cookies, neither tool can reach `/vulnerabilities/sqli/`, `/vulnerabilities/xss_r/`, or any authenticated path. ZAP's spider finds the login page but cannot progress without credentials.
+1. **No authenticated crawling.** DVWA's injection endpoints require login; without session cookies neither tool can reach `/vulnerabilities/sqli/`, `/vulnerabilities/xss_r/`, or any authenticated path. ZAP's spider finds the login page but cannot progress without credentials. (bWAPP and Mutillidae expose some unauthenticated injection pages, but their forms POST session-gated parameters and error markers are suppressed on the default security level.)
 
 2. **SPA endpoint invisibility.** Juice Shop is an Angular SPA. Its vulnerable endpoints (`/rest/products/search`, `/api/Feedbacks/{id}`) are loaded dynamically via JavaScript, not present as `<a href>` links. Neither tool's HTML parser discovers them. ZAP has an Ajax Spider extension but it requires a browser driver (Selenium/Firefox) which was not available in this headless evaluation environment.
 
 3. **Injection detection thresholds.** Both tools' SQLi checks require either a database error marker or a response-length delta. DVWA's SQLi endpoints return consistent page sizes and suppress error messages. XSS detection requires raw `<tag>` markers in responses, but most reflection points apply HTML encoding.
 
-**Sample size caveat:** The aggregate F1 of 0.533 (HORUS) and 0.286 (ZAP) are derived from 30 ground-truth instances across 3 targets. This measures detection capability on specific known-vulnerable applications, not generalization. A production DAST evaluation would require hundreds of targets with per-endpoint labeled ground truth — a significantly larger effort than this study scope.
+**Sample size caveat:** The aggregate F1 of 0.442 (HORUS) and 0.300 (ZAP) are derived from 76 ground-truth instances across 5 targets and 11 check types. This measures detection capability on specific known-vulnerable applications, not generalization. A production DAST evaluation would require hundreds of targets with per-endpoint labeled ground truth — a significantly larger effort than this study scope.
 
 ### 11.6 Evaluation Infrastructure
 
-- **Targets:** Docker containers (`vulnerables/web-dvwa:latest`, `bkimminich/juice-shop:latest`, `webgoat/webgoat:latest`)
+- **Targets:** Docker containers (`vulnerables/web-dvwa:latest`, `bkimminich/juice-shop:latest`, `webgoat/webgoat:latest`, `raesene/bwapp:latest`, `citizenstig/nowasp:latest` [Mutillidae II]); bWAPP and Mutillidae run as amd64 images under Rosetta emulation on macOS
 - **Network:** DAST service container reaching targets via Docker's `host.docker.internal` bridge; ZAP running natively on host (Java 17, OpenJDK 17.0.19)
-- **Reproducibility:** `scripts/evaluate_dast.py` with `--target dvwa|juice_shop|webgoat|all`, `--horus-only`, and `--zap-only` flags
-- **Result archives:** HORUS findings are archived in `scripts/dast_eval_results/*_results_old.json` (raw scans in `*_raw.json`); ZAP alert sets are archived in `*_results.json` with a run-level `evaluation_summary.json`. The figures in Section 11.3 were originally produced by the 2026-07-26 run and match the archived deduplicated findings.
-- **Zero-findings anomaly (2026-07-29) — root cause and resolution:** A harness run on 2026-07-29 recorded zero HORUS findings (`evaluation_summary.json`, HORUS tp=0 fp=0 fn=30) while ZAP produced its full alert set. Root cause: a stale native `python app.py` DAST process (started 2026-07-26) and the containerized DAST service both bound port 5003, so `localhost:5003` routing was nondeterministic between the two listeners; the native process cannot resolve Docker's `host.docker.internal` bridge hostname, so any scan routed to it silently returned zero findings. Fixes, all merged in harness commit `df3f269`: (a) terminate the stale native process; (b) add a fail-loud pre-flight probe `verify_horus_service()` that aborts the run unless the DAST service proves it can reach a `host.docker.internal` target, plus `HORUS_BASE_URL`/`WEBGOAT_PORT`/`HORUS_PROBE_URL` overrides; (c) treat a down target as fatal rather than silently dropping it from the aggregate. With all three targets running, `scripts/evaluate_dast.py --target all --horus-only` was executed 3× on 2026-07-31 (tag `dast-eval-reproducible-2026-07-31`) and reproduced the Section 11.3 aggregate exactly every run: TP=12, FP=3, FN=18 → P=0.800, R=0.400, F1=0.533. WebGoat was served on port 8083 during reproduction because port 8082 was occupied by an unrelated host process; findings are independent of the serving port.
-- **Ground truth:** Inline definitions in `scripts/evaluate_dast.py` — 30 labeled instances across 10 check types and 3 targets, with per-entry verification method annotations
-- **ZAP version:** OWASP ZAP 2.17.0 (macOS native via Homebrew cask, `brew install --cask zap`); `ZAP_TO_CHECKTYPE` mapping verified against real ZAP alert output from all 3 targets
-- **ZAP scan pipeline:** Spider (recursive) → passive scan → active scan; findings deduplicated by check_type before metric computation. HORUS findings are likewise deduplicated by check_type (the evaluation compares at the check_type level, so duplicate findings of the same type do not add information). An earlier version of the harness had two bugs in its status-polling logic: (1) it called the `action/status/` endpoint for both spider and active scan, which does not exist (returns `bad_action`); (2) the `view/status/` endpoint returns a key named `status`, but the code read `.get("progress", "100")`, silently defaulting to 100 on every poll. Both bugs caused every polling loop to exit on the first iteration, understating scan times by an order of magnitude and missing late-arriving active-scan noise alerts. The corrected harness uses `view/status/` and reads the `status` key. The figures in Section 11.3 reflect this corrected pipeline.
-- **Scan time:** HORUS ~0.3s per target (passive header analysis + targeted active probes); ZAP 10s–258s per target (spider + passive + active scan cycle); the wide range reflects target complexity — Juice Shop's active scan stalled at 92% progress for up to 120s on time-based injection rules against undiscovered SPA routes. (Timings vary between runs due to ZAP's internal scheduling; an earlier run stalled for 495s.)
+- **Reproducibility:** `scripts/evaluate_dast.py` with `--target dvwa|juice_shop|webgoat|bwapp|mutillidae|all`, `--horus-only`, and `--zap-only` flags
+- **Result archives:** The Section 11.3 figures correspond to the 2026-07-31 five-target run: HORUS + ZAP results per target in `scripts/dast_eval_results/{target}_results.json` (ZAP raw alerts in `{target}_zap_raw.json`), aggregated in `evaluation_summary.json` (HORUS TP=23/FP=5/FN=53 → P=0.821/R=0.303/F1=0.442; ZAP TP=21/FP=43/FN=55 → P=0.328/R=0.276/F1=0.300). Per-endpoint metrics are in `evaluation_summary_endpoint.json` (recomputed from the same archives by `scripts/endpoint_matching.py`). The prior 3-target run's archives remain in `*_results_old.json` (raw scans in `*_raw.json`) and match the archived deduplicated findings.
+- **GT scaling run (2026-07-31):** Ground truth was expanded from 30 instances (3 targets) to 76 instances (5 targets, 11 check types) to test whether the reported metrics are artifacts of the original small corpus. bWAPP and Mutillidae contribute 16 instances each. Every new bWAPP/Mutillidae entry was verified against the running containers before labeling — confirmed absent: `Content-Security-Policy`, `X-Frame-Options`, `Strict-Transport-Security`; confirmed present: `Server: Apache/2.4.7 (Ubuntu)` and `X-Powered-By: PHP/5.5.9` banners, session cookies (`PHPSESSID`, `showhints`) without `Secure`/`HttpOnly` flags, and no HTTPS on any port. Metrics moved modestly: HORUS precision 0.800→0.821, recall 0.400→0.303 (recall drops because the expanded ground truth adds proportionally more injection/IDOR instances that neither tool can reach); ZAP F1 0.286→0.300. The qualitative conclusions — header detection is strong for both tools, injection detection fails without auth/SPA crawling, HORUS's advantage is precision — hold under GT scaling. Full run log: `/tmp/dast_eval_full.log`.
+- **Zero-findings anomaly (2026-07-29) — root cause and resolution:** A harness run on 2026-07-29 recorded zero HORUS findings (`evaluation_summary.json`, HORUS tp=0 fp=0 fn=30) while ZAP produced its full alert set. Root cause: a stale native `python app.py` DAST process (started 2026-07-26) and the containerized DAST service both bound port 5003, so `localhost:5003` routing was nondeterministic between the two listeners; the native process cannot resolve Docker's `host.docker.internal` bridge hostname, so any scan routed to it silently returned zero findings. Fixes, all merged in harness commit `df3f269`: (a) terminate the stale native process; (b) add a fail-loud pre-flight probe `verify_horus_service()` that aborts the run unless the DAST service proves it can reach a `host.docker.internal` target, plus `HORUS_BASE_URL`/`WEBGOAT_PORT`/`HORUS_PROBE_URL` overrides; (c) treat a down target as fatal rather than silently dropping it from the aggregate. With all three targets running, `scripts/evaluate_dast.py --target all --horus-only` was executed 3× on 2026-07-31 (tag `dast-eval-reproducible-2026-07-31`) and reproduced the 30-instance aggregate exactly every run: TP=12, FP=3, FN=18 → P=0.800, R=0.400, F1=0.533. WebGoat was served on port 8083 during reproduction because port 8082 was occupied by an unrelated host process; findings are independent of the serving port.
+- **Ground truth:** Inline definitions in `scripts/evaluate_dast.py` — 76 labeled instances across 11 check types and 5 targets (68 unique endpoint units), with per-entry verification method annotations (`header-verified`, `documented` for the bWAPP/Mutillidae additions) and an `endpoint` field per entry for per-endpoint matching
+- **ZAP version:** OWASP ZAP 2.17.0 (macOS native via Homebrew cask, `brew install --cask zap`); `ZAP_TO_CHECKTYPE` mapping verified against real ZAP alert output from all 5 targets
+- **ZAP scan pipeline:** Standard unauthenticated configuration typical of a quick external scan — default spider (recursive) → passive scan → active scan, no authentication injection, no Ajax Spider (browser driver unavailable in the headless evaluation environment); findings deduplicated by check_type before metric computation. HORUS findings are likewise deduplicated by check_type (the evaluation compares at the check_type level, so duplicate findings of the same type do not add information). An earlier version of the harness had two bugs in its status-polling logic: (1) it called the `action/status/` endpoint for both spider and active scan, which does not exist (returns `bad_action`); (2) the `view/status/` endpoint returns a key named `status`, but the code read `.get("progress", "100")`, silently defaulting to 100 on every poll. Both bugs caused every polling loop to exit on the first iteration, understating scan times by an order of magnitude and missing late-arriving active-scan noise alerts. The corrected harness uses `view/status/` and reads the `status` key. The figures in Section 11.3 reflect this corrected pipeline. The active-scan poll loop caps at 600 polls × 5s (3000s); scans exceeding this cap (Juice Shop, Mutillidae) proceed to alert collection with whatever has been reported so far, and raw alert collection is capped at 2000 alerts.
+- **Scan time:** HORUS 0.3–1.6s per target (passive header analysis + targeted active probes); ZAP 26s–3112s per target (spider + passive + active scan cycle); the wide range reflects target complexity — Juice Shop and Mutillidae both exhausted the 3000s active-scan polling cap on time-based injection rules against undiscovered SPA routes and large PHP page sets.
 
 ---
 
@@ -746,11 +809,11 @@ To contextualize HORUS's detection capability, we ran OWASP ZAP 2.17.0 against t
 3. **Categorical encoding drift:** Feature engineering uses a manual mapping dict while training scripts use `pd.Categorical().codes` — these can produce different integer encodings for the same categorical value.
 4. **No persistent model storage:** Docker volumes do not persist model weights — retraining requires API calls or script execution.
 5. **Single-node deployment:** No horizontal scaling, load balancing, or multi-region support.
-6. **DAST active scanning gap:** Zero active findings (SQLi, XSS, IDOR) across all evaluation targets. Root cause: no authenticated crawling, SPA endpoint invisibility, and injection detection thresholds tuned for error-marker-based detection only.
-7. **DAST sample size:** 30 ground-truth instances across 3 targets. Per-endpoint matching was not used (check_type-level only). Generalization claims require larger-scale evaluation.
-8. **DAST exposed_metadata false positives:** The `check_exposed_metadata` function uses `=` as the substring indicator for `.env` files, which matches any HTML page (Juice Shop, WebGoat). It also classifies real `/robots.txt` files as `exposed_metadata` rather than `exposed_path`, creating vocabulary mismatches (DVWA, Juice Shop). Total: 4 false positives across 3 targets. Fixes: use `KEY=VALUE` pattern or content-type validation for `.env`; align `exposed_metadata` and `exposed_path` check types for robots.txt.
-9. **ZAP comparison scope:** The ZAP baseline was run without Ajax Spider (requires browser driver not available in headless evaluation) and without authenticated scanning (no credential injection). ZAP's full capability with browser-based crawling and authenticated sessions may close the gap on SPA and login-gated targets. A fairer comparison would require both tools to have equivalent access to authenticated endpoints.
-10. **Evaluation targets are intentionally vulnerable:** All three targets (DVWA, Juice Shop, WebGoat) are deliberately vulnerable applications. Real-world applications typically have fewer simultaneous vulnerabilities and more complex authentication flows. The relative performance gap between tools may differ on production applications.
+6. **DAST active scanning gap:** Near-zero injection findings (SQLi, XSS, IDOR) across all evaluation targets — the sole exception is ZAP's SQL injection detection on WebGoat. Root cause: no authenticated crawling, SPA endpoint invisibility, and injection detection thresholds tuned for error-marker-based detection only.
+7. **DAST sample size:** 76 ground-truth instances across 5 targets and 11 check types (68 unique endpoint units). Both check_type-level and per-endpoint metrics are reported (Section 11.3); the endpoint unit collapses same-URL instances — WebGoat's lesson labels all share `/WebGoat/attack` and are distinguishable only by the `lesson` parameter, which limits per-endpoint granularity there. Generalization claims require larger-scale evaluation.
+8. **DAST exposed_metadata false positives:** The `check_exposed_metadata` function uses `=` as the substring indicator for `.env` files, which matches any HTML page (Juice Shop). It also classifies real `/robots.txt` files as `exposed_metadata` rather than `exposed_path`, creating vocabulary mismatches (DVWA, bWAPP). Mutillidae serves a real `/.git/config` that has no matching ground-truth check type. Total: 4 false positives across 4 targets. Fixes: use `KEY=VALUE` pattern or content-type validation for `.env`; align `exposed_metadata` and `exposed_path` check types for robots.txt.
+9. **ZAP comparison scope:** The ZAP baseline was deliberately run in its standard unauthenticated configuration (default spider + passive + active scan, no credential injection, no Ajax Spider) to represent what a security team receives from a quick external scan. ZAP's full capability with browser-based crawling and authenticated sessions may close the gap on SPA and login-gated targets. A fairer head-to-head would require both tools to have equivalent access to authenticated endpoints; the reported comparison is explicitly scoped to the unauthenticated external-scan baseline.
+10. **Evaluation targets are intentionally vulnerable:** All five targets (DVWA, Juice Shop, WebGoat, bWAPP, Mutillidae) are deliberately vulnerable applications. Real-world applications typically have fewer simultaneous vulnerabilities and more complex authentication flows. The relative performance gap between tools may differ on production applications.
 
 ### 12.2 Future Work
 
@@ -762,9 +825,9 @@ To contextualize HORUS's detection capability, we ran OWASP ZAP 2.17.0 against t
 6. **Continuous learning:** Implement feedback loop where analyst triage decisions retrain models.
 7. **DAST authenticated crawling:** Implement session-cookie-aware endpoint discovery to reach login-gated injection points (DVWA SQLi/XSS).
 8. **DAST JavaScript rendering:** Add headless browser-based crawling for SPA targets (Juice Shop Angular) to discover dynamically-loaded API endpoints.
-9. **DAST per-endpoint evaluation:** Scale ground truth to 200+ labeled instances with per-endpoint matching to produce generalizable precision/recall estimates.
+9. **DAST per-endpoint evaluation:** Per-endpoint matching is implemented (Section 11.3) but the endpoint-labeled corpus remains small (68 units) and WebGoat's lesson endpoints are not URL-distinguishable. Scale ground truth to 200+ labeled instances with distinct per-endpoint labels to produce generalizable precision/recall estimates.
 10. **DAST exposed_metadata refinement:** Change the `.env` indicator from `=` to a more specific pattern (e.g., `KEY=VALUE` or content-type `text/plain`) to avoid false positives on SPA HTML responses. Add content-type validation before flagging sensitive paths.
-11. **ZAP full-capability comparison:** Re-run ZAP evaluation with Ajax Spider (headless browser) and authenticated scanning (form-based login injection) to compare against HORUS with equivalent target access.
+11. **ZAP full-capability comparison:** Re-run ZAP evaluation beyond the standard unauthenticated baseline with Ajax Spider (headless browser) and authenticated scanning (form-based login injection) to compare against HORUS with equivalent target access.
 12. **Multi-tool benchmark:** Extend evaluation to include other DAST tools (Burp Suite, Nuclei, Nikto) for broader comparative context.
 
 ---

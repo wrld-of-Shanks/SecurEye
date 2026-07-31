@@ -76,7 +76,7 @@ class IsolationForestDetector:
         normalized_score = self._normalize_score(raw_score)
         
         return {
-            'is_anomaly': prediction == -1,
+            'is_anomaly': bool(prediction == -1),
             'anomaly_score': float(normalized_score),
             'raw_score': float(raw_score)
         }
