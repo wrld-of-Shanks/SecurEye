@@ -1,0 +1,113 @@
+{
+  "timestamp": "2026-07-31T19:18:16.336118",
+  "targets": [
+    "dvwa",
+    "juice_shop",
+    "webgoat"
+  ],
+  "summary": {
+    "horus": {
+      "tp": 12,
+      "fp": 3,
+      "fn": 18,
+      "precision": 0.8,
+      "recall": 0.4,
+      "f1": 0.5333
+    },
+    "zap": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    }
+  },
+  "per_target": {
+    "dvwa": {
+      "target": "DVWA (Damn Vulnerable Web Application)",
+      "tp": 5,
+      "fp": 1,
+      "fn": 6,
+      "precision": 0.8333,
+      "recall": 0.4545,
+      "f1": 0.5882,
+      "gt_count": 11,
+      "tool_finding_count": 6,
+      "tp_checks": [
+        "missing_csp",
+        "missing_hsts",
+        "missing_xfo",
+        "server_banner_disclosure",
+        "weak_tls"
+      ],
+      "fp_checks": [
+        "exposed_metadata"
+      ],
+      "fn_checks": [
+        "error_disclosure",
+        "insecure_cookies",
+        "sqli_indicator",
+        "xss_reflection"
+      ],
+      "tool": "HORUS DAST",
+      "scan_time_seconds": 0.2
+    },
+    "juice_shop": {
+      "target": "OWASP Juice Shop",
+      "tp": 3,
+      "fp": 1,
+      "fn": 6,
+      "precision": 0.75,
+      "recall": 0.3333,
+      "f1": 0.4615,
+      "gt_count": 9,
+      "tool_finding_count": 4,
+      "tp_checks": [
+        "missing_csp",
+        "missing_hsts",
+        "weak_tls"
+      ],
+      "fp_checks": [
+        "exposed_metadata"
+      ],
+      "fn_checks": [
+        "error_disclosure",
+        "exposed_path",
+        "idor_indicator",
+        "sqli_indicator",
+        "xss_reflection"
+      ],
+      "tool": "HORUS DAST",
+      "scan_time_seconds": 0.7
+    },
+    "webgoat": {
+      "target": "OWASP WebGoat",
+      "tp": 4,
+      "fp": 1,
+      "fn": 6,
+      "precision": 0.8,
+      "recall": 0.4,
+      "f1": 0.5333,
+      "gt_count": 10,
+      "tool_finding_count": 5,
+      "tp_checks": [
+        "missing_csp",
+        "missing_hsts",
+        "missing_xfo",
+        "weak_tls"
+      ],
+      "fp_checks": [
+        "open_redirect"
+      ],
+      "fn_checks": [
+        "error_disclosure",
+        "idor_indicator",
+        "sqli_indicator",
+        "xss_reflection"
+      ],
+      "tool": "HORUS DAST",
+      "scan_time_seconds": 0.2
+    }
+  }
+}
